@@ -1,9 +1,25 @@
 package main
 
 //Entry point for CLI
-
-import "fmt"
+import (
+	"fmt"
+	"os"
+)
 
 func main() {
-	fmt.Println("commitgen")
+	if len(os.Args) > 1 {
+		cliArg := os.Args[1]
+
+		if cliArg == "suggest" {
+			suggest()
+		} else {
+			fmt.Println("Unknown command")
+		}
+	} else {
+		fmt.Println("Usage: commitgen <command>\nAvailable commands:\n  suggest")
+	}
+}
+
+func suggest() {
+	fmt.Println("suggest message")
 }
