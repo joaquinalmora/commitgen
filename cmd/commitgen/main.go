@@ -4,6 +4,8 @@ package main
 import (
 	"fmt"
 	"os"
+
+	"github.com/joaquinalmora/commitgen/internal/diff"
 )
 
 func main() {
@@ -13,7 +15,7 @@ func main() {
 		if cliArg == "suggest" {
 			suggest()
 		} else {
-			fmt.Println("Unknown command")
+			fmt.Println("Unknown command: " + cliArg)
 		}
 	} else {
 		fmt.Println("Usage: commitgen <command>\nAvailable commands:\n  suggest")
@@ -22,4 +24,11 @@ func main() {
 
 func suggest() {
 	fmt.Println("suggest message")
+	files, err := diff.StagedFiles()
+
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+
+	fmt.Println(files)
 }
