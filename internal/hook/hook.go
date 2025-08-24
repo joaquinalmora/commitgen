@@ -4,6 +4,6 @@ import "fmt"
 
 // Installs git hooks that call binary to prefill messages
 
-func installHook() {
+func InstallHook() {
 	fmt.Println("hook installed")
 }

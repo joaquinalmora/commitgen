@@ -7,6 +7,7 @@ import (
 	"sort"
 
 	"github.com/joaquinalmora/commitgen/internal/diff"
+	"github.com/joaquinalmora/commitgen/internal/hook"
 	"github.com/joaquinalmora/commitgen/internal/prompt"
 )
 
@@ -25,7 +26,7 @@ var commands = map[string]Command{
 	"install-hook": {
 		Description: "Install a git commit hook to auto-suggest commit messages",
 		Run: func(args []string) {
-			installHook()
+			hook.InstallHook()
 		},
 	},
 }
@@ -56,7 +57,7 @@ func main() {
 	cmd, ok := commands[name]
 
 	if !ok {
-		fmt.Println("Unknown command: %s\n\n", name)
+		fmt.Printf("Unknown command: %s\n\n", name)
 		printUsage(commands)
 		return
 	}
