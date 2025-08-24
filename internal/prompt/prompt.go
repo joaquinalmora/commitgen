@@ -8,7 +8,7 @@ import (
 
 // Builds the message, start of with heuristic and then a prompt text for AI
 
-func MakePrompt(files []string) string {
+func MakePrompt(files []string, patch string) string {
 	n := 2
 
 	if len(files) == 0 {
@@ -24,6 +24,10 @@ func MakePrompt(files []string) string {
 
 	if isConfigOnly(files) {
 		return "Update configuration"
+	}
+
+	if isRenameOnly(patch) {
+		return "Rename files"
 	}
 
 	if len(files) < n {
@@ -109,5 +113,19 @@ func isConfigOnly(files []string) bool {
 			return false
 		}
 	}
+	return true
+}
+
+func isRenameOnly(patch string) bool {
+	lf := strings.ToLower(patch)
+
+	if !(strings.Contains(lf, "rename from)") && strings.Contains(lf, "rename to")) {
+		return false
+	}
+
+	if strings.Contains(lf, "@@") {
+		return false
+	}
+
 	return true
 }

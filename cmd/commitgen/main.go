@@ -32,5 +32,5 @@ func suggest() {
 	}
 	fmt.Println(len(patch), "bytes of staged changes")
 	fmt.Println(patch[:min(100, len(patch))])
-	fmt.Println(prompt.MakePrompt(files))
+	fmt.Println(prompt.MakePrompt(files, patch))
 }
