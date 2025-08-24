@@ -119,7 +119,7 @@ func isConfigOnly(files []string) bool {
 func isRenameOnly(patch string) bool {
 	lf := strings.ToLower(patch)
 
-	if !(strings.Contains(lf, "rename from)") && strings.Contains(lf, "rename to")) {
+	if !(strings.Contains(lf, "rename from") && strings.Contains(lf, "rename to")) {
 		return false
 	}
 
