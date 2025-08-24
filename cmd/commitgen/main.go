@@ -24,11 +24,13 @@ func main() {
 }
 
 func suggest() {
-	files, err := diff.StagedFiles()
+	files, patch, err := diff.StagedChanges(100 * 1024) //100KB limit
 
 	if err != nil {
 		fmt.Println("Error:", err)
+		return
 	}
-
+	fmt.Println(len(patch), "bytes of staged changes")
+	fmt.Println(patch[:min(100, len(patch))])
 	fmt.Println(prompt.MakePrompt(files))
 }

@@ -1,6 +1,7 @@
 package diff
 
 import (
+	//"fmt"
 	"os/exec"
 	"strings"
 )
@@ -24,4 +25,28 @@ func StagedFiles() ([]string, error) {
 	}
 
 	return files, nil
+}
+
+func StagedChanges(filesLimitBytes int) (files []string, patch string, err error) {
+	files, err = StagedFiles()
+	if err != nil {
+		return nil, "", err
+	}
+
+	if len(files) == 0 {
+		return files, "", nil
+	}
+
+	stagedChangesBytes, err := exec.Command("git", "diff", "--cached", "--unified=0").Output()
+	if err != nil {
+		return nil, "", err
+	}
+
+	patch = string(stagedChangesBytes)
+	if len(patch) > filesLimitBytes {
+		patch = patch[:filesLimitBytes]
+	}
+
+	return files, patch, nil
+
 }
