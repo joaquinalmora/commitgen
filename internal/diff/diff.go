@@ -14,5 +14,14 @@ func StagedFiles() ([]string, error) {
 		return nil, err
 	}
 
-	return strings.Split(strings.TrimSpace(string(changedFilesBytes)), "\n"), nil
+	rawFiles := strings.Split(strings.TrimSpace(string(changedFilesBytes)), "\n")
+
+	var files []string
+	for _, f := range rawFiles {
+		if f != "" {
+			files = append(files, f)
+		}
+	}
+
+	return files, nil
 }

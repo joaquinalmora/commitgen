@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/joaquinalmora/commitgen/internal/diff"
+	"github.com/joaquinalmora/commitgen/internal/prompt"
 )
 
 func main() {
@@ -23,12 +24,11 @@ func main() {
 }
 
 func suggest() {
-	fmt.Println("suggest message")
 	files, err := diff.StagedFiles()
 
 	if err != nil {
 		fmt.Println("Error:", err)
 	}
 
-	fmt.Println(files)
+	fmt.Println(prompt.MakePrompt(files))
 }
