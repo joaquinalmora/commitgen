@@ -3,7 +3,6 @@ package shell
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -30,12 +29,12 @@ func InstallShell() error {
 	// snippet content: plugin-first strategy with native fallback
 	snippet := pluginFirstSnippet()
 
-	if err := ioutil.WriteFile(cfgPath, []byte(snippet), 0o644); err != nil {
+	if err := os.WriteFile(cfgPath, []byte(snippet), 0o644); err != nil {
 		return err
 	}
 
 	zshrcPath := filepath.Join(home, ".zshrc")
-	zshrcBytes, _ := ioutil.ReadFile(zshrcPath)
+	zshrcBytes, _ := os.ReadFile(zshrcPath)
 	zshrc := string(zshrcBytes)
 
 	// if already installed, do nothing
@@ -68,7 +67,7 @@ func UninstallShell() error {
 	cfgPath := filepath.Join(home, snippetRelPath)
 	zshrcPath := filepath.Join(home, ".zshrc")
 
-	zshrcBytes, err := ioutil.ReadFile(zshrcPath)
+	zshrcBytes, err := os.ReadFile(zshrcPath)
 	if err != nil {
 		// if .zshrc doesn't exist, still attempt to remove snippet
 		_ = os.Remove(cfgPath)
@@ -78,7 +77,7 @@ func UninstallShell() error {
 
 	new, changed := removeGuardedBlock(zshrc)
 	if changed {
-		if err := ioutil.WriteFile(zshrcPath, []byte(new), 0o644); err != nil {
+		if err := os.WriteFile(zshrcPath, []byte(new), 0o644); err != nil {
 			return err
 		}
 	}

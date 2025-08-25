@@ -100,24 +100,18 @@ func suggest(args []string) {
 
 	files, patch, err := diff.StagedChanges(100 * 1024)
 	if err != nil {
-		if plain {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		if verbose {
-			fmt.Fprintln(os.Stderr, "Error:", err)
-		} else {
-			fmt.Fprintln(os.Stderr, err)
-		}
-		return
+		// always report the error to stderr and exit non-zero
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		os.Exit(1)
 	}
 
 	if len(patch) == 0 {
+		// hooks expect --plain to silently do nothing; CLI non-plain should fail
 		if plain {
 			return
 		}
 		fmt.Fprintln(os.Stderr, "No staged files.")
-		return
+		os.Exit(1)
 	}
 
 	msg := prompt.MakePrompt(files, patch)

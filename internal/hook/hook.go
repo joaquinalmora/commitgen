@@ -10,18 +10,18 @@ import (
 func InstallHook() {
 	cwd, err := os.Getwd()
 	if err != nil {
-		fmt.Println("failed to get current directory:", err)
+		fmt.Fprintln(os.Stderr, "failed to get current directory:", err)
 		return
 	}
 
 	hookPath := filepath.Join(cwd, ".git", "hooks", "prepare-commit-msg")
 
 	if _, err := os.Stat(hookPath); err == nil {
-		fmt.Println("Error: prepare-commit-msg hook already exists")
-		fmt.Println("Please remove it before installing this hook.")
+		fmt.Fprintln(os.Stderr, "Error: prepare-commit-msg hook already exists")
+		fmt.Fprintln(os.Stderr, "Please remove it before installing this hook.")
 		return
 	} else if !os.IsNotExist(err) {
-		fmt.Println("failed to check if hook exists:", err)
+		fmt.Fprintln(os.Stderr, "failed to check if hook exists:", err)
 		return
 	}
 
@@ -54,13 +54,13 @@ func InstallHook() {
 		`, binPath)
 
 	if err := os.WriteFile(hookPath, []byte(script), 0o644); err != nil {
-		fmt.Println("failed to write hook file:", err)
+		fmt.Fprintln(os.Stderr, "failed to write hook file:", err)
 		return
 	}
 
 	if err := os.Chmod(hookPath, 0o755); err != nil {
-		fmt.Println("failed to make hook executable:", err)
+		fmt.Fprintln(os.Stderr, "failed to make hook executable:", err)
 		return
 	}
-	fmt.Println("prepare-commit-msg hook installed successfully at", hookPath)
+	fmt.Fprintln(os.Stderr, "prepare-commit-msg hook installed successfully at", hookPath)
 }

@@ -15,6 +15,8 @@ This document explains the code layout, the runtime behavior of the CLI and hook
   - `--plain`: prints exactly one trimmed subject line to stdout (suitable for shells/hooks). If no staged changes, prints nothing and exits 0.
   - `--verbose`: prints diagnostic output (patch preview, sizes, and the message) to stderr; stdout remains the message for non-plain mode.
   - Without flags, the tool prints a human-facing message to stdout. `--verbose` directs debug to stderr.
+  - Note: non-plain CLI runs now exit non-zero when there are no staged files; `--plain` remains silent (exit 0) so hooks may call it safely.
+  - All diagnostic and installer messages are written to stderr so `--plain` output remains clean on stdout.
 - `commitgen install-hook` — Writes a `prepare-commit-msg` hook into the repository's `.git/hooks/prepare-commit-msg` file (current implementation writes the file in the current working directory's `.git` folder).
 - `commitgen init-shell` — Writes `~/.config/commitgen.zsh` and appends a guarded `source` block to `~/.zshrc` (idempotent).
 - `commitgen uninstall-shell` — Removes the guarded block and deletes `~/.config/commitgen.zsh` (idempotent).
