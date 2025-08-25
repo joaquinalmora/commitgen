@@ -13,7 +13,7 @@ const (
 	guardEnd       = "# <<< commitgen <<<"
 )
 
-// InstallShell writes the commitgen zsh snippet and a guarded source block to ~/.zshrc
+// writes the commitgen zsh snippet and a guarded source block to ~/.zshrc
 func InstallShell() error {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -37,7 +37,7 @@ func InstallShell() error {
 	zshrcBytes, _ := os.ReadFile(zshrcPath)
 	zshrc := string(zshrcBytes)
 
-	// if already installed, noop
+	// if already installed, do nothing
 	if containsGuard(zshrc) {
 		return nil
 	}

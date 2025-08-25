@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, try1 ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    name: Unit tests (ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+      - name: Check gofmt
+        run: |
+          if [ -n "$(gofmt -l .)" ]; then
+            echo "gofmt needs to be run on these files:";
+            gofmt -l .;
+            exit 1;
+          fi
+      - name: Run tests
+        run: go test ./...
+
+  macos-manual:
+    name: macOS smoke (manual)
+    runs-on: macos-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+      - name: Run macOS smoke
+        run: go test ./...
+
+  e2e-manual:
+    name: e2e integration (manual)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+      - name: Run e2e test
+        run: go test ./e2e -run TestSuggestPlainIntegration -v

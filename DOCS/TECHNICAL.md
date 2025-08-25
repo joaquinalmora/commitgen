@@ -36,3 +36,5 @@ This document explains the code layout, the runtime behavior of the CLI and hook
 
 This document is intended as an internal developer reference — keep it up to date as the codebase changes. Use it as the source when composing a user-facing README or technical blog posts.
 Note: repository `.gitignore` now contains `*_test.go` and `e2e/` so test files and the end-to-end folder remain local-only and are not pushed to remotes.
+
+CI: A minimal GitHub Actions workflow lives at `.github/workflows/ci.yml`. It runs a gofmt check and unit tests on Ubuntu for push/PR. macOS and the e2e integration job are exposed as manual workflows (workflow_dispatch) to avoid slowing down routine PRs.
