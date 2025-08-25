@@ -4,7 +4,9 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/joaquinalmora/commitgen/internal/diff"
 	"github.com/joaquinalmora/commitgen/internal/hook"
@@ -20,7 +22,7 @@ var commands = map[string]Command{
 	"suggest": {
 		Description: "Suggest a commit message based on staged changes",
 		Run: func(args []string) {
-			suggest()
+			suggest(args)
 		},
 	},
 	"install-hook": {
@@ -65,14 +67,65 @@ func main() {
 	cmd.Run(os.Args[2:])
 }
 
-func suggest() {
-	files, patch, err := diff.StagedChanges(100 * 1024) //100KB limit
+func inGitRepo() bool {
+	cwd, _ := os.Getwd()
+	_, err := os.Stat(filepath.Join(cwd, ".git"))
+	return err == nil
+}
 
+func suggest(args []string) {
+
+	if !inGitRepo() {
+		fmt.Fprintln(os.Stderr, "Error: not a git repository (no .git directory found)")
+		os.Exit(1)
+	}
+	plain := hasFlag(args, "--plain")
+
+	files, patch, err := diff.StagedChanges(100 * 1024)
 	if err != nil {
+		if plain {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
 		fmt.Println("Error:", err)
 		return
 	}
+
+	if len(patch) == 0 {
+		if plain {
+			return
+		}
+		fmt.Println("No staged files.")
+		return
+	}
+
+	msg := prompt.MakePrompt(files, patch)
+
+	if plain {
+		s := strings.TrimSpace(msg)
+		if s != "" {
+			fmt.Println(s)
+		}
+		return
+	}
+
 	fmt.Println(len(patch), "bytes of staged changes")
 	fmt.Println(patch[:min(100, len(patch))])
-	fmt.Println(prompt.MakePrompt(files, patch))
+	fmt.Println(msg)
+}
+
+func hasFlag(args []string, flag string) bool {
+	for _, a := range args {
+		if a == flag {
+			return true
+		}
+	}
+	return false
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

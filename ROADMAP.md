@@ -28,6 +28,11 @@ This document captures **what’s built today**, **what’s missing**, and a **s
   - Skips if message already has content; skips merge/squash/rebase
   - Writes suggestion into the message file
 
+**Inline suggestions status (today)**
+- `suggest --plain` implemented and returning single-line subject.
+- Prototype zsh integration present: custom strategy function for `zsh-autosuggestions` and native zsh POSTDISPLAY widget attempted.
+- Current behavior observed: in native zsh path the suggestion is being inserted directly instead of shown as ghost-text; needs refinement so it stays as preview until accepted (key-binding).
+
 **CLI plumbing**
 - Minimal command registry and `--help`/usage printer.
 
@@ -35,7 +40,7 @@ This document captures **what’s built today**, **what’s missing**, and a **s
 
 ## ⚠️ Gaps / known issues
 
-- **Inline suggestions (ghost text) not implemented** yet.
+- Inline suggestions prototype exists, but native zsh path currently inserts text immediately instead of previewing; needs POSTDISPLAY-only preview with explicit accept binding.
 - **Hook uninstall** is missing (`uninstall-hook`).
 - **Doctor** command missing (env checks).
 - `install-hook` assumes **repo root**; doesn’t search parent dirs for `.git`.
@@ -44,6 +49,8 @@ This document captures **what’s built today**, **what’s missing**, and a **s
 - No **AI integration** (LLM) yet.
 - No **packaging** (Homebrew tap, release binaries) or CI.
 - No **config flags/env** (e.g., `--max-files`, `--patch-bytes`, enable/disable buckets).
+- Shell setup automation missing: need safe, idempotent installer that writes a separate snippet (e.g., ~/.config/commitgen.zsh) and sources it from ~/.zshrc, with uninstall.
+- Cross-shell coverage not implemented: bash fallback helpers and fish integration TBD.
 
 ---
 
@@ -52,6 +59,8 @@ This document captures **what’s built today**, **what’s missing**, and a **s
 1) **Inline suggestions in terminal**
    - **With oh-my-zsh + zsh-autosuggestions:** custom strategy that supplies `commitgen suggest` text when typing `git commit -m "`. Accept with →.
    - **Without plugins (plain zsh):** a `zle-line-pre-redraw` widget that paints a ghost suggestion via `POSTDISPLAY` and accepts with → by binding a custom widget.
+   - preview via POSTDISPLAY, accept with a bound key (Right Arrow or Ctrl+F), never auto-insert.
+   - Bash/Fish: provide simple one-liners and optional shell snippets (bash completions/fish functions) to surface suggestions or integrate with their UX.
 
 2) **Robust Git hook lifecycle**
    - `install-hook`: backup existing hook or abort with message; write executable script.
@@ -73,35 +82,39 @@ This document captures **what’s built today**, **what’s missing**, and a **s
    - Makefile, GitHub Actions CI (build/test), release artifacts.
    - Homebrew tap (`brew install joaquinalmora/tap/commitgen`).
 
+6) **Guided install & uninstall**
+   - `commitgen init shell` writes `~/.config/commitgen.zsh` and appends a guarded `source` line to `~/.zshrc` if missing; supports `--ohmyzsh` and `--native`.
+   - `commitgen uninstall shell` removes the guarded block and the snippet.
+   - `commitgen doctor` verifies repo, hook, binary on PATH, zsh snippet sourced, and staged-change path.
+
 ---
 
 ## 📌 Immediate next steps (bite-sized)
 
-1) **Finish inline suggestions**
-   - (A) **oh-my-zsh path**: add autosuggestion strategy (see `INLINE_SUGGESTIONS.md`).
-   - (B) **native zsh path**: add `~/.zshrc` widget using `POSTDISPLAY` + custom Right-Arrow handler.
-
-2) **Add uninstall & doctor**
-   - `uninstall-hook`: check `.git/hooks/prepare-commit-msg`, remove (or restore `.bak`). Print result.
-   - `doctor`: print a checklist (in repo? hook executable? `bin/commitgen` exists? staged files?). Exit non‑zero on failure.
-
-3) **Polish suggest output**
-   - Ensure `suggest` prints **exactly one line**. No lengths, no previews.
-
-4) **Walk-up .git**
-   - In `InstallHook()`, optionally walk parent dirs until you find `.git` so users can run from subfolders.
-
-5) **Tests**
-   - Unit tests for `isDocsOnly`, `isTestsOnly`, `isConfigOnly`, `isRenameOnly`.
-   - Golden tests for the summary line (e.g., 1 file, N files).
+1. **Finalize `--plain` output**: ensure zero extra prints in plain mode (already working; add test).
+2. **Fix native zsh preview**: adjust widget so it only sets `POSTDISPLAY` (no insertion), and bind accept to a key (Right Arrow or Ctrl+F). Add minimal debounce.
+3. **Harden autosuggestions strategy**: when buffer matches commit prefix, return empty suggestion with success to block history; ensure strategy runs first.
+4. **Add `commitgen init shell`**: generate `~/.config/commitgen.zsh` with either autosuggestions strategy or native widget; append a single guarded `# >>> commitgen >>>` block to `~/.zshrc` to source it. Make idempotent.
+5. **Add `commitgen uninstall shell`**: remove the guarded block and snippet. Idempotent.
+6. **Add `commitgen doctor`**: checks (in git repo, binary on PATH, hook executable, snippet sourced, staged changes). Non‑zero exit on failure.
+7. **Add `uninstall-hook`** and improve `install-hook` (backup/restore; walk to .git).
+8. **README updates**: quickstart, inline setup (oh-my-zsh + native zsh), troubleshooting, uninstall.
 
 ---
+
+- [ ] Confirm zsh-autosuggestions plugin is installed in ~/.oh-my-zsh/custom/plugins
+- [ ] Re-enable in plugins=(git zsh-autosuggestions zsh-syntax-highlighting)
+- [ ] Verify commitgen strategy shows ghost text in dim style
+- [ ] If plugin missing, run git clone https://github.com/zsh-users/zsh-autosuggestions
 
 ## 🧭 Stretch tasks (when the core is solid)
 
 - **AI integration** with a provider adapter (OpenAI / local Ollama).
 - **Config file** (e.g., `.commitgen.yaml`) to tweak buckets, limits.
 - **Multiplatform hook script** considerations (currently POSIX `sh` is fine for macOS/Linux).
+- Bash helpers: function/alias to insert `$(commitgen suggest --plain)` and optional readline bindings.
+- Fish integration: a simple fish function to preview/accept suggestions.
+- CI: cross‑shell smoke tests using docker images for zsh/bash/fish.
 
 ---
 
@@ -111,6 +124,7 @@ This document captures **what’s built today**, **what’s missing**, and a **s
 - `suggest` is deterministic and single-line.
 - Inline suggestions work:
   - With **oh-my-zsh** (zsh-autosuggestions).
-  - Without plugins (native zsh widget).
+  - Native zsh shows preview (POSTDISPLAY), requires explicit accept, and does not auto-insert.
+- Install/uninstall and doctor commands succeed end‑to‑end on a fresh machine.
 - README covers install, usage, inline setup, troubleshooting.
 - Tests pass in CI; release binaries available.
