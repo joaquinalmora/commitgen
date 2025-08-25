@@ -1,6 +1,5 @@
 package main
 
-//Entry point for CLI
 import (
 	"fmt"
 	"os"
@@ -11,6 +10,7 @@ import (
 	"github.com/joaquinalmora/commitgen/internal/diff"
 	"github.com/joaquinalmora/commitgen/internal/hook"
 	"github.com/joaquinalmora/commitgen/internal/prompt"
+	"github.com/joaquinalmora/commitgen/internal/shell"
 )
 
 type Command struct {
@@ -29,6 +29,22 @@ var commands = map[string]Command{
 		Description: "Install a git commit hook to auto-suggest commit messages",
 		Run: func(args []string) {
 			hook.InstallHook()
+		},
+	},
+	"init-shell": {
+		Description: "Install shell snippet and guarded .zshrc block",
+		Run: func(args []string) {
+			if err := shell.InstallShell(); err != nil {
+				fmt.Fprintln(os.Stderr, "install shell failed:", err)
+			}
+		},
+	},
+	"uninstall-shell": {
+		Description: "Remove shell snippet and guarded .zshrc block",
+		Run: func(args []string) {
+			if err := shell.UninstallShell(); err != nil {
+				fmt.Fprintln(os.Stderr, "uninstall shell failed:", err)
+			}
 		},
 	},
 }
@@ -74,12 +90,13 @@ func inGitRepo() bool {
 }
 
 func suggest(args []string) {
-
+	// ensure we're in a repo
 	if !inGitRepo() {
 		fmt.Fprintln(os.Stderr, "Error: not a git repository (no .git directory found)")
 		os.Exit(1)
 	}
 	plain := hasFlag(args, "--plain")
+	verbose := hasFlag(args, "--verbose")
 
 	files, patch, err := diff.StagedChanges(100 * 1024)
 	if err != nil {
@@ -87,7 +104,11 @@ func suggest(args []string) {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		fmt.Println("Error:", err)
+		if verbose {
+			fmt.Fprintln(os.Stderr, "Error:", err)
+		} else {
+			fmt.Fprintln(os.Stderr, err)
+		}
 		return
 	}
 
@@ -95,7 +116,7 @@ func suggest(args []string) {
 		if plain {
 			return
 		}
-		fmt.Println("No staged files.")
+		fmt.Fprintln(os.Stderr, "No staged files.")
 		return
 	}
 
@@ -109,8 +130,15 @@ func suggest(args []string) {
 		return
 	}
 
-	fmt.Println(len(patch), "bytes of staged changes")
-	fmt.Println(patch[:min(100, len(patch))])
+	if verbose {
+		// diagnostics to stderr
+		fmt.Fprintln(os.Stderr, len(patch), "bytes of staged changes")
+		fmt.Fprintln(os.Stderr, patch[:min(100, len(patch))])
+		fmt.Fprintln(os.Stderr, msg)
+		return
+	}
+
+	// default: human message to stdout
 	fmt.Println(msg)
 }
 

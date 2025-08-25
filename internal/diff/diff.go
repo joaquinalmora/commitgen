@@ -1,14 +1,11 @@
 package diff
 
 import (
-	//"fmt"
 	"os/exec"
 	"strings"
 )
 
-// Reads staged file list and patch from git.
-// Returns filenames and a trimmed diff string
-
+// StagedFiles returns the list of staged files (git)
 func StagedFiles() ([]string, error) {
 	changedFilesBytes, err := exec.Command("git", "diff", "--cached", "--name-only").Output()
 	if err != nil {

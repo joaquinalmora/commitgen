@@ -6,8 +6,7 @@ import (
 	"strings"
 )
 
-// Builds the message, start of with heuristic and then a prompt text for AI
-
+// MakePrompt builds a short subject using simple heuristics.
 func MakePrompt(files []string, patch string) string {
 	n := 2
 

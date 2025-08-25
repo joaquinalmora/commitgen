@@ -1,7 +1,6 @@
 package hook
 
-// Installs git hooks that call binary to prefill messages
-
+// InstallHook writes a prepare-commit-msg hook that runs the repo's bin/commitgen
 import (
 	"fmt"
 	"os"
