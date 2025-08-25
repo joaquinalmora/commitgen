@@ -128,3 +128,25 @@ This document captures **what’s built today**, **what’s missing**, and a **s
 - Install/uninstall and doctor commands succeed end‑to‑end on a fresh machine.
 - README covers install, usage, inline setup, troubleshooting.
 - Tests pass in CI; release binaries available.
+
+---
+
+## 💤 Parking note (today’s status)
+- CLI: `commitgen suggest --plain` works and is the source of the ghost text (verified).
+- Native zsh inline preview: functional; accepts with → and Ctrl+F; preview color not reliably dim in this terminal/theme.
+- zsh-autosuggestions: NOT enabled by default; when enabled, visuals look great using custom `commitgen` strategy.
+- Current shell set to **native only** (no plugin).
+
+### When I come back
+1) **Decide primary UX**
+   - Option A: Make **autosuggestions the default** (prettier ghost text); provide one-command install (`commitgen init shell`) that clones plugin if missing and wires custom strategy.
+   - Option B: Keep **native** as default; continue trying to enforce `zle_highlight` styling (standout/bold,fg=242) or accept plain preview.
+2) Implement `commitgen init shell` + `uninstall shell` + `doctor`.
+3) (Optional) Add AI provider after UX is solid.
+
+### Quick test
+```bash
+echo "test $(date)" >> demo.txt && git add demo.txt
+git commit -m "
+# expect: preview from commitgen, accept with → or Ctrl+F, no re-suggest after insert
+
