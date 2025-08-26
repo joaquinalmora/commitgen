@@ -139,7 +139,7 @@ func (p *OpenAIProvider) GenerateCommitMessage(ctx context.Context, files []stri
 
 	message := strings.TrimSpace(openAIResp.Choices[0].Message.Content)
 	message = strings.Trim(message, `"'`)
-	
+
 	if strings.HasPrefix(message, "```") {
 		lines := strings.Split(message, "\n")
 		if len(lines) > 1 {
@@ -151,14 +151,28 @@ func (p *OpenAIProvider) GenerateCommitMessage(ctx context.Context, files []stri
 
 	if len(message) > 72 {
 		lines := strings.Split(message, "\n")
-		message = lines[0]
-		if len(message) > 72 {
-			lastSpace := strings.LastIndex(message[:70], " ")
-			if lastSpace > 30 {
-				message = message[:lastSpace]
-			} else {
-				message = message[:70]
+		firstLine := lines[0]
+		
+		if len(firstLine) > 72 {
+			words := strings.Fields(firstLine)
+			var result []string
+			length := 0
+			
+			for _, word := range words {
+				if length+len(word)+1 > 72 {
+					break
+				}
+				result = append(result, word)
+				length += len(word) + 1
 			}
+			
+			if len(result) > 0 {
+				message = strings.Join(result, " ")
+			} else {
+				message = firstLine[:69] + "..."
+			}
+		} else {
+			message = firstLine
 		}
 	}
 
