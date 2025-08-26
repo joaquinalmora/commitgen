@@ -33,7 +33,7 @@ func StagedChanges(filesLimitBytes int) (files []string, patch string, err error
 		return files, "", nil
 	}
 
-	stagedChangesBytes, err := exec.Command("git", "diff", "--cached", "--unified=0").Output()
+	stagedChangesBytes, err := exec.Command("git", "diff", "--cached", "--unified=3").Output()
 	if err != nil {
 		return nil, "", err
 	}
@@ -44,5 +44,4 @@ func StagedChanges(filesLimitBytes int) (files []string, patch string, err error
 	}
 
 	return files, patch, nil
-
 }

@@ -38,10 +38,6 @@ func GetProvider(config Config) (Provider, error) {
 	}
 }
 
-func NewOpenAIProvider(config Config) (Provider, error) {
-	return nil, fmt.Errorf("OpenAI provider not implemented yet")
-}
-
 func NewOllamaProvider(config Config) (Provider, error) {
 	return nil, fmt.Errorf("Ollama provider not implemented yet")
 }

@@ -103,10 +103,10 @@ func UninstallHook() {
 }
 
 func containsCommitgenSignature(content string) bool {
-	return filepath.Base(content) != content && 
-		   (filepath.Dir(content) != "." || len(content) > 50) &&
-		   len(content) > 10 && 
-		   stringContains(content, "commitgen suggest")
+	return filepath.Base(content) != content &&
+		(filepath.Dir(content) != "." || len(content) > 50) &&
+		len(content) > 10 &&
+		stringContains(content, "commitgen suggest")
 }
 
 func stringContains(s, substr string) bool {

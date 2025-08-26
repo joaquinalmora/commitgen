@@ -113,11 +113,11 @@ func suggest(args []string) {
 		fmt.Fprintln(os.Stderr, "Error: not a git repository (no .git directory found)")
 		os.Exit(1)
 	}
-	
+
 	plain := hasFlag(args, "--plain")
 	verbose := hasFlag(args, "--verbose")
 	useAI := hasFlag(args, "--ai")
-	
+
 	cfg := config.Load()
 	if cfg.AI.Enabled {
 		useAI = true
@@ -138,19 +138,19 @@ func suggest(args []string) {
 	}
 
 	var msg string
-	
+
 	if useAI && cfg.AI.APIKey != "" {
 		if verbose {
 			fmt.Fprintln(os.Stderr, "Using AI provider:", cfg.AI.Provider)
 		}
-		
+
 		providerConfig := provider.Config{
 			Provider: cfg.AI.Provider,
 			APIKey:   cfg.AI.APIKey,
 			Model:    cfg.AI.Model,
 			BaseURL:  cfg.AI.BaseURL,
 		}
-		
+
 		aiProvider, err := provider.GetProvider(providerConfig)
 		if err != nil {
 			if verbose {
