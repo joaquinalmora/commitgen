@@ -13,7 +13,6 @@ const (
 	guardEnd       = "# <<< commitgen <<<"
 )
 
-// writes the commitgen zsh snippet and a guarded source block to ~/.zshrc
 func InstallShell() error {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -26,7 +25,6 @@ func InstallShell() error {
 		return err
 	}
 
-	// plugin-first snippet (zsh); written to ~/.config/commitgen.zsh
 	snippet := pluginFirstSnippet()
 
 	if err := os.WriteFile(cfgPath, []byte(snippet), 0o644); err != nil {
@@ -37,7 +35,6 @@ func InstallShell() error {
 	zshrcBytes, _ := os.ReadFile(zshrcPath)
 	zshrc := string(zshrcBytes)
 
-	// if already installed, do nothing
 	if containsGuard(zshrc) {
 		return nil
 	}
@@ -57,7 +54,6 @@ func InstallShell() error {
 	return nil
 }
 
-// UninstallShell removes the guarded block from ~/.zshrc and deletes the snippet file.
 func UninstallShell() error {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -69,7 +65,6 @@ func UninstallShell() error {
 
 	zshrcBytes, err := os.ReadFile(zshrcPath)
 	if err != nil {
-		// if .zshrc doesn't exist, still attempt to remove snippet
 		_ = os.Remove(cfgPath)
 		return nil
 	}
@@ -82,7 +77,6 @@ func UninstallShell() error {
 		}
 	}
 
-	// remove snippet file
 	if err := os.Remove(cfgPath); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
@@ -98,7 +92,6 @@ func filepathHas(s, sub string) bool {
 	return len(s) > 0 && (stringIndex(s, sub) >= 0)
 }
 
-// lightweight string index to avoid extra imports
 func stringIndex(s, sub string) int {
 	for i := 0; i+len(sub) <= len(s); i++ {
 		if s[i:i+len(sub)] == sub {
@@ -108,7 +101,6 @@ func stringIndex(s, sub string) int {
 	return -1
 }
 
-// removeGuardedBlock removes the first guarded block and returns the new content + whether it changed.
 func removeGuardedBlock(s string) (string, bool) {
 	start := stringIndex(s, guardStart)
 	if start < 0 {
@@ -119,7 +111,6 @@ func removeGuardedBlock(s string) (string, bool) {
 		return s, false
 	}
 	end += start + len(guardEnd)
-	// remove possible surrounding newlines
 	new := s[:start]
 	if end < len(s) {
 		new += s[end:]

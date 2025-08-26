@@ -5,7 +5,6 @@ import (
 	"strings"
 )
 
-// StagedFiles returns the list of staged files (git)
 func StagedFiles() ([]string, error) {
 	changedFilesBytes, err := exec.Command("git", "diff", "--cached", "--name-only").Output()
 	if err != nil {

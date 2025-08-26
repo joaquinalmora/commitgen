@@ -6,7 +6,6 @@ import (
 	"strings"
 )
 
-// MakePrompt builds a short subject using simple heuristics.
 func MakePrompt(files []string, patch string) string {
 	n := 2
 

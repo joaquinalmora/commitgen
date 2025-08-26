@@ -1,16 +1,19 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 
+	"github.com/joaquinalmora/commitgen/internal/config"
 	"github.com/joaquinalmora/commitgen/internal/diff"
 	"github.com/joaquinalmora/commitgen/internal/doctor"
 	"github.com/joaquinalmora/commitgen/internal/hook"
 	"github.com/joaquinalmora/commitgen/internal/prompt"
+	"github.com/joaquinalmora/commitgen/internal/provider"
 	"github.com/joaquinalmora/commitgen/internal/shell"
 )
 
@@ -21,7 +24,7 @@ type Command struct {
 
 var commands = map[string]Command{
 	"suggest": {
-		Description: "Suggest a commit message based on staged changes",
+		Description: "Suggest a commit message based on staged changes [--ai] [--plain] [--verbose]",
 		Run: func(args []string) {
 			suggest(args)
 		},
@@ -30,6 +33,12 @@ var commands = map[string]Command{
 		Description: "Install a git commit hook to auto-suggest commit messages",
 		Run: func(args []string) {
 			hook.InstallHook()
+		},
+	},
+	"uninstall-hook": {
+		Description: "Remove the git commit hook installed by commitgen",
+		Run: func(args []string) {
+			hook.UninstallHook()
 		},
 	},
 	"install-shell": {
@@ -100,23 +109,27 @@ func inGitRepo() bool {
 }
 
 func suggest(args []string) {
-	// ensure we're in a repo
 	if !inGitRepo() {
 		fmt.Fprintln(os.Stderr, "Error: not a git repository (no .git directory found)")
 		os.Exit(1)
 	}
+	
 	plain := hasFlag(args, "--plain")
 	verbose := hasFlag(args, "--verbose")
+	useAI := hasFlag(args, "--ai")
+	
+	cfg := config.Load()
+	if cfg.AI.Enabled {
+		useAI = true
+	}
 
-	files, patch, err := diff.StagedChanges(100 * 1024)
+	files, patch, err := diff.StagedChanges(cfg.PatchBytes)
 	if err != nil {
-		// always report the error to stderr and exit non-zero
 		fmt.Fprintln(os.Stderr, "Error:", err)
 		os.Exit(1)
 	}
 
 	if len(patch) == 0 {
-		// hooks expect --plain to silently do nothing; CLI non-plain should fail
 		if plain {
 			return
 		}
@@ -124,7 +137,49 @@ func suggest(args []string) {
 		os.Exit(1)
 	}
 
-	msg := prompt.MakePrompt(files, patch)
+	var msg string
+	
+	if useAI && cfg.AI.APIKey != "" {
+		if verbose {
+			fmt.Fprintln(os.Stderr, "Using AI provider:", cfg.AI.Provider)
+		}
+		
+		providerConfig := provider.Config{
+			Provider: cfg.AI.Provider,
+			APIKey:   cfg.AI.APIKey,
+			Model:    cfg.AI.Model,
+			BaseURL:  cfg.AI.BaseURL,
+		}
+		
+		aiProvider, err := provider.GetProvider(providerConfig)
+		if err != nil {
+			if verbose {
+				fmt.Fprintln(os.Stderr, "AI provider error:", err)
+				fmt.Fprintln(os.Stderr, "Falling back to heuristics")
+			}
+			msg = prompt.MakePrompt(files, patch)
+		} else {
+			ctx := context.Background()
+			aiMsg, err := aiProvider.GenerateCommitMessage(ctx, files, patch)
+			if err != nil {
+				if verbose {
+					fmt.Fprintln(os.Stderr, "AI generation error:", err)
+					fmt.Fprintln(os.Stderr, "Falling back to heuristics")
+				}
+				msg = prompt.MakePrompt(files, patch)
+			} else {
+				msg = aiMsg
+				if verbose {
+					fmt.Fprintln(os.Stderr, "Generated using AI")
+				}
+			}
+		}
+	} else {
+		if useAI && verbose {
+			fmt.Fprintln(os.Stderr, "AI requested but no API key configured, using heuristics")
+		}
+		msg = prompt.MakePrompt(files, patch)
+	}
 
 	if plain {
 		s := strings.TrimSpace(msg)
@@ -135,14 +190,12 @@ func suggest(args []string) {
 	}
 
 	if verbose {
-		// diagnostics to stderr
 		fmt.Fprintln(os.Stderr, len(patch), "bytes of staged changes")
 		fmt.Fprintln(os.Stderr, patch[:min(100, len(patch))])
 		fmt.Fprintln(os.Stderr, msg)
 		return
 	}
 
-	// default: human message to stdout
 	fmt.Println(msg)
 }
 
