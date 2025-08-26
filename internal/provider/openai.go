@@ -152,12 +152,12 @@ func (p *OpenAIProvider) GenerateCommitMessage(ctx context.Context, files []stri
 	if len(message) > 72 {
 		lines := strings.Split(message, "\n")
 		firstLine := lines[0]
-		
+
 		if len(firstLine) > 72 {
 			words := strings.Fields(firstLine)
 			var result []string
 			length := 0
-			
+
 			for _, word := range words {
 				if length+len(word)+1 > 72 {
 					break
@@ -165,7 +165,7 @@ func (p *OpenAIProvider) GenerateCommitMessage(ctx context.Context, files []stri
 				result = append(result, word)
 				length += len(word) + 1
 			}
-			
+
 			if len(result) > 0 {
 				message = strings.Join(result, " ")
 			} else {

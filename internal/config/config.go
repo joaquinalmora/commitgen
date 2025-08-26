@@ -23,13 +23,13 @@ func Load() Config {
 
 	cfg.AI.Enabled = getEnvBool("COMMITGEN_AI", false)
 	cfg.AI.Provider = getEnv("COMMITGEN_AI_PROVIDER", "openai")
-	
+
 	apiKey := getEnv("COMMITGEN_AI_API_KEY", "")
 	if apiKey == "" && cfg.AI.Provider == "openai" {
 		apiKey = getEnv("OPENAI_API_KEY", "")
 	}
 	cfg.AI.APIKey = apiKey
-	
+
 	cfg.AI.Model = getEnv("COMMITGEN_AI_MODEL", getDefaultModel(cfg.AI.Provider))
 	cfg.AI.BaseURL = getEnv("COMMITGEN_AI_BASE_URL", getDefaultBaseURL(cfg.AI.Provider))
 
