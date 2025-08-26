@@ -1,83 +1,268 @@
 # commitgen — Technical Reference
 
-This document explains the code layout, the runtime behavior of the CLI and hook, and developer-facing details useful when extending or packaging the project.
+This document explains the code layout, runtime behavior, and developer-facing details useful when extending or packaging the project.
 
-## Repository layout (key files)
+## Repository Layout (Key Files)
 
-- `cmd/commitgen/main.go` — CLI entrypoint and command wiring.
-- `internal/diff/diff.go` — Git interactions to read staged files and produce a trimmed patch.
-- `internal/prompt/prompt.go` — Heuristics to produce a one-line suggested subject.
-- `internal/hook/hook.go` — Hook installer writing `prepare-commit-msg` scripts.
-- `internal/shell/shell.go` — zsh plugin-first snippet writer and guarded `.zshrc` block manager.
-- `internal/doctor/doctor.go` — environment & install diagnostics (`commitgen doctor`).
+- `cmd/commitgen/main.go` — CLI entrypoint and command wiring with AI integration
+- `internal/diff/diff.go` — Git interactions to read staged files and produce trimmed patch
+- `internal/prompt/prompt.go` — Heuristics for fallback commit message generation
+- `internal/provider/` — AI provider implementations (OpenAI, etc.)
+- `internal/cache/cache.go` — High-performance caching system for AI responses
+- `internal/hook/hook.go` — Dual git hook installer (prepare-commit-msg + post-index-change)
+- `internal/shell/shell.go` — zsh plugin-first snippet writer and `.zshrc` block manager
+- `internal/doctor/doctor.go` — Environment & installation diagnostics
 
-## Commands (what they do)
+## Commands (What They Do)
 
-- `commitgen suggest [--plain] [--verbose]` — Generate a suggested commit subject.
-  - `--plain`: prints exactly one trimmed subject line to stdout (suitable for shells/hooks). If no staged changes, prints nothing and exits 0.
-  - `--verbose`: prints diagnostic output (patch preview, sizes, and the message) to stderr.
-  - Non-plain mode prints a human-facing message; non-plain runs now exit non-zero when there are no staged files (so CI and CLI callers can detect failure).
+### Core Commands
 
-## Suggest flow (high-level)
+- `commitgen suggest [--ai] [--plain] [--verbose]` — Generate commit message suggestion
+  - `--ai`: Use AI provider (OpenAI) for professional commit messages
+  - `--plain`: Output exactly one trimmed subject line (shell/script friendly)
+  - `--verbose`: Print diagnostic output to stderr
+  - Without `--ai`: Use heuristic-based fallback generation
 
-1. `suggest` calls `internal/diff.StagedChanges(limit)` to get `files []string` and a trimmed `patch string`.
+### Cache Management
+
+- `commitgen cache` — Pre-generate and cache AI commit message for staged changes
+- `commitgen cached` — Retrieve most recent cached commit message (instant)
+
+### Installation Management
+
+- `commitgen install-hook` — Install dual git hook system for auto-cache workflow
+- `commitgen uninstall-hook` — Remove git hooks with backup restoration
+- `commitgen install-shell` — Install zsh shell integration snippet
+- `commitgen uninstall-shell` — Remove zsh integration
+- `commitgen doctor` — Run comprehensive environment diagnostics
+
+## AI Integration Architecture
+
+### Provider System
+
+```text
+suggest() → config.Load() → provider.GetProvider() → AI API Call
+                                     ↓
+                              Fallback to heuristics
+```
+
+**Current Providers:**
+
+- `internal/provider/openai.go` — OpenAI API integration with conventional commits
+- `internal/provider/provider.go` — Abstract interface for extensibility
+
+### Configuration
+
+Environment variables control AI behavior:
+
+- `OPENAI_API_KEY` — OpenAI API key for AI suggestions
+- `COMMITGEN_AI=1` — Force AI mode (equivalent to `--ai` flag)  
+- `COMMITGEN_DEBUG=1` — Enable verbose debug output
+
+## Auto-Cache System
+
+### Architecture Overview
+
+The cache system provides 50x performance improvement by pre-generating AI responses:
+
+```text
+git add → post-index-change hook → background cache generation
+git commit → prepare-commit-msg hook → instant cached message insertion
+```
+
+### Cache Storage
+
+```text
+~/.cache/commitgen/
+├── messages/
+│   ├── a1b2c3d4.json    # Cached message with metadata  
+│   └── e5f6g7h8.json    # Content hash → message mapping
+└── latest.json          # Pointer to most recent cache entry
+```
+
+### Cache Lifecycle
+
+1. **Content Hashing**: SHA256 of staged diff for deduplication
+2. **Generation**: AI API call with commit conventions  
+3. **Storage**: JSON with message, timestamp, hash metadata
+4. **Expiry**: 24-hour automatic cleanup
+5. **Retrieval**: Hash-based lookup for instant access
+
+## Dual Git Hook System
+
+### Hook Implementation
+
+**prepare-commit-msg Hook:**
+
+- Triggers on `git commit` before editor opens
+- Tries cached message first (instant: ~0.05s)
+- Falls back to real-time AI generation if no cache
+- Inserts message into commit file automatically
+- Preserves existing commit messages (non-destructive)
+
+**post-index-change Hook:**
+
+- Triggers on `git add` when index changes
+- Runs cache generation in background (non-blocking)
+- No impact on `git add` performance
+- Ensures fresh cache available for next commit
+
+### Installation Safety
+
+- Backs up existing hooks automatically
+- Restores backups on uninstall
+- Detects commitgen-created hooks to prevent conflicts
+- Cross-platform shell compatibility
+
+## Performance Benchmarks
+
+### Real-World Measurements
+
+```bash
+# Real-time AI (no cache)
+time ./bin/commitgen suggest --ai
+# Result: 3.142s user time
+
+# Cached retrieval  
+time ./bin/commitgen cached
+# Result: 0.060s user time (52x faster)
+
+# Complete workflow with auto-cache
+time git add . && time git commit --no-edit  
+# Result: 0.030s + 0.051s = 0.081s total
+```
+
+### Cache Hit Scenarios
+
+- **Identical content**: 100% cache hit (SHA256 match)
+- **Modified content**: New generation triggered  
+- **24h expiry**: Automatic cleanup prevents stale data
+- **Storage efficiency**: Deduplication via content hashing
+
+## Suggest Flow (High-Level)
+
+### AI Mode (Default with `--ai`)
+
+1. `suggest --ai` calls `internal/diff.StagedChanges(limit)` to get `files []string` and trimmed `patch string`
+2. `config.Load()` determines AI provider settings and API configuration
+3. `provider.GetProvider()` creates configured AI provider (OpenAI, etc.)
+4. `provider.GenerateCommitMessage(files, patch)` sends request to AI API
+5. AI response parsed and formatted according to conventional commits
+6. Output formatted by flags (`--plain` vs normal; debug to stderr with `--verbose`)
+7. Fallback to heuristics if AI fails
+
+### Heuristic Mode (Fallback)
+
+1. `suggest` (no `--ai`) calls `internal/diff.StagedChanges(limit)`
 2. `prompt.MakePrompt(files, patch)` applies bucket heuristics:
-   - `isTestsOnly` / `isDocsOnly` / `isConfigOnly` / `isRenameOnly`.
-   - Default: `Update <file1>, <file2> (+N more)`.
-3. Output is formatted according to flags (`--plain` vs normal; debug to stderr when `--verbose`).
+   - `isTestsOnly` / `isDocsOnly` / `isConfigOnly` / `isRenameOnly`
+   - Default: `feat: update <file1>, <file2> (+N more)`
+3. Output formatted according to flags
 
-## Plugin-first zsh design
+### Cache Flow
 
-This project uses a plugin-first approach for zsh inline suggestions.
+1. `cache` command generates message via AI mode and stores result
+2. Content hashed with SHA256 for deduplication  
+3. Message stored in `~/.cache/commitgen/messages/<hash>.json`
+4. `latest.json` updated to point to newest cache entry
+5. `cached` command retrieves via hash lookup (instant)
+
+## Plugin-First zsh Design
+
+This project uses a plugin-first approach for zsh inline suggestions with complete AI integration.
 
 ### Goal
 
-Surface a deterministic, single-line commit suggestion as inline ghost text in interactive zsh shells. Provide a safe, conservative fallback for users who don't have `zsh-autosuggestions` installed.
+Surface AI-generated, professional commit suggestions as inline ghost text in interactive zsh shells. Provide safe, conservative fallback for users without `zsh-autosuggestions`.
 
-### User-facing contract
+### User-Facing Contract
 
-- Input: local repository and staged changes (no network calls).
-- Output: a single-line suggestion string (suitable for `git commit -m "<suggestion>"`).
-- Error modes: empty workspace or no staged files → no suggestion (graceful no-op).
-- Privacy: all work happens locally; nothing is transmitted.
+- **Input**: Local repository with staged changes + OpenAI API access
+- **Output**: Professional conventional commit message (AI-generated)
+- **Fallback**: Intelligent heuristics when AI unavailable
+- **Privacy**: Only git diff sent to AI (no personal data)
+- **Performance**: Auto-cache provides instant responses
 
-### Plugin-first behavior (zsh-autosuggestions)
+### Plugin-First Behavior (zsh-autosuggestions)
 
-- Detect presence of `zsh-autosuggestions` using common env vars and default plugin paths.
-- Provide a minimal strategy function `_zsh_autosuggest_strategy_commitgen` that calls `commitgen suggest --plain` when the user is typing a `git commit -m "..."` (or the configured alias).
-- Prepend the strategy so `commitgen` is tried before history suggestions.
+- Detects `zsh-autosuggestions` using environment vars and plugin paths
+- Provides strategy function `_zsh_autosuggest_strategy_commitgen`
+- Calls `commitgen cached` first (instant), falls back to `commitgen suggest --ai`
+- Prepends strategy for prioritization over history suggestions
 
-Rationale: This delivers true inline ghost text with the plugin's native accept/decline behavior (right-arrow to accept). It's non-invasive: it only reads staged files and does not change commit files.
+**Rationale**: Delivers true inline ghost text with native accept/decline behavior (right-arrow to accept). Non-invasive: only reads staged files, doesn't modify commit files.
 
-### Native fallback (POSTDISPLAY)
+### Native Fallback (POSTDISPLAY)
 
-- If the plugin isn't present, show a dim preview using `zle -M` when the user types `git commit -m "`.
-- Provide a widget `cg-accept-preview` bound to Ctrl-F (and optionally Right/End keys) that inserts the suggestion into the command buffer.
-- Keep fallback conservative: no automatic edits to `COMMIT_EDITMSG`; users must accept the preview explicitly.
+- If plugin absent, shows dim preview using `zle -M`
+- Provides widget `cg-accept-preview` bound to Ctrl-F
+- Conservative approach: explicit user acceptance required
 
-### Implementation notes
+## Development
 
-- The snippet lives under `internal/shell/commitgen.zsh` and the installer writes it to `~/.config/commitgen.zsh` and adds a guarded source block in `~/.zshrc`.
-- Suggestion generation is synchronous but should be fast; prefer caching or asynchronous invocation if real-world delays appear.
-- Store any short-lived cache in `XDG_CACHE_HOME` with user-only permissions.
+### Run Tests
 
-### Edge cases and mitigations
+```bash
+go test ./...
+```
 
-- Slow suggestion generation: run asynchronously or add debounce to avoid prompt stalls.
-- Plugin detection: support common plugin managers (Oh My Zsh, antigen, zplug) via environment checks and common paths.
-- Shell customizations: the snippet must be idempotent and tolerant of re-sourcing.
+### Run Diagnostics
 
-### Tests and QA
+```bash
+./bin/commitgen doctor
+```
 
-- Unit tests: `internal/prompt` and `internal/shell` should have deterministic unit tests for suggestion output and installer idempotency.
-- Manual QA: interactive tests in zsh with and without `zsh-autosuggestions` to verify ghost behavior and fallback accept widget.
+### Cache Development Tools
 
-### Next work items
+```bash
+# View cache contents
+./bin/commitgen cached
 
-- Harden the fallback (debounce + accurate inside-quote detection).
-- Add optional `prepare-commit-msg` prefill mode (opt-in) as an alternative UX.
+# Force regenerate cache
+./bin/commitgen cache
 
-Note: `commitgen doctor` has been implemented to help validate local installs and environment (see `internal/doctor/doctor.go`).
+# Cache location
+ls -la ~/.cache/commitgen/
+```
 
-Keep this document synchronized with code changes. Use it as the developer reference when working on the shell integration and related tests.
+### Implementation Notes
+
+- Shell snippet: `internal/shell/commitgen.zsh` → `~/.config/commitgen.zsh`
+- Cache suggestion is synchronous and fast (0.06s via auto-cache)
+- Store cache in `XDG_CACHE_HOME` with user-only permissions
+- Hooks are idempotent and tolerant of re-installation
+
+## Quality Assurance
+
+### Testing Strategy
+
+- **Unit Tests**: `internal/prompt`, `internal/cache`, `internal/provider`
+- **Integration Tests**: End-to-end workflow with git operations
+- **Manual QA**: Interactive testing in zsh with/without plugins
+- **Performance Tests**: Cache hit rates and response times
+
+### Edge Cases
+
+- **Slow AI responses**: Auto-cache eliminates delays  
+- **Plugin detection**: Supports Oh My Zsh, antigen, zplug
+- **Shell customizations**: Snippet is idempotent and re-source safe
+- **Network failures**: Graceful fallback to heuristics
+
+## Extension Points
+
+### Adding New AI Providers
+
+1. Implement `internal/provider/Provider` interface
+2. Add provider detection in `provider.GetProvider()`
+3. Update configuration documentation
+4. Add comprehensive error handling
+
+### Cache System Extensions
+
+- **Custom TTL**: Configurable expiry times
+- **Compression**: Reduce storage footprint  
+- **Distributed Cache**: Share between team members
+- **Metrics**: Cache hit rates and performance tracking
+
+**Note**: Use `commitgen doctor` to validate installations and diagnose issues. Keep this document synchronized with code changes.
 
