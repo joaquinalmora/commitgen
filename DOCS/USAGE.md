@@ -1,4 +1,4 @@
-# Quick start — commitgen
+# Quick start - commitgen
 
 This file shows the minimal steps a new user should run to try commitgen locally.
 
@@ -8,20 +8,20 @@ This file shows the minimal steps a new user should run to try commitgen locally
 go build -o bin/commitgen ./cmd/commitgen
 ```
 
-2. (Optional) Install the zsh snippet for persistent inline suggestions
+1. (Optional) Install the zsh snippet for persistent inline suggestions
 
 ```bash
 # preferred command
 ./bin/commitgen install-shell
 ```
 
-3. Run a quick diagnostic
+1. Run a quick diagnostic
 
 ```bash
 ./bin/commitgen doctor
 ```
 
-4. Test in a repo with staged changes
+1. Test in a repo with staged changes
 
 ```bash
 # in any repo with staged changes

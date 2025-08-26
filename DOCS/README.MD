@@ -20,14 +20,10 @@ go build -o bin/commitgen ./cmd/commitgen
 
 # run environment checks
 ./bin/commitgen doctor
-```
-
-Ghost (inline) suggestions in zsh
+## Ghost (inline) suggestions in zsh
 --------------------------------
 
-Quick: enable ghost suggestions (no extra tools required)
-
-- If you use zsh with `zsh-autosuggestions` the snippet will show true ghost text inline. To try it without installing anything permanently, source the snippet:
+If you use zsh with `zsh-autosuggestions` the snippet will show ghost text inline. To try it without installing anything permanently, source the snippet:
 
 ```bash
 source internal/shell/commitgen.zsh
@@ -51,10 +47,9 @@ go run ./cmd/commitgen install-shell
 ```
 
 Privacy & safety
+
 - The snippet only reads the working tree and staged files locally; it never uploads content.
 - By default it does not modify commit messages or hooks. An optional prepare-commit-msg prefill is planned but disabled by default.
-
-
 
 Build for local smoke tests:
 
