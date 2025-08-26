@@ -149,11 +149,16 @@ func (p *OpenAIProvider) GenerateCommitMessage(ctx context.Context, files []stri
 		message = strings.TrimSpace(message)
 	}
 
-	if len(message) > 50 {
+	if len(message) > 72 {
 		lines := strings.Split(message, "\n")
 		message = lines[0]
-		if len(message) > 50 {
-			message = message[:50]
+		if len(message) > 72 {
+			lastSpace := strings.LastIndex(message[:70], " ")
+			if lastSpace > 30 {
+				message = message[:lastSpace]
+			} else {
+				message = message[:70]
+			}
 		}
 	}
 

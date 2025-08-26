@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/joaquinalmora/commitgen/internal/cache"
 	"github.com/joaquinalmora/commitgen/internal/config"
 	"github.com/joaquinalmora/commitgen/internal/diff"
 	"github.com/joaquinalmora/commitgen/internal/doctor"
@@ -47,6 +48,18 @@ var commands = map[string]Command{
 			if err := shell.InstallShell(); err != nil {
 				fmt.Fprintln(os.Stderr, "install shell failed:", err)
 			}
+		},
+	},
+	"cache": {
+		Description: "Generate and cache commit message for current staged changes",
+		Run: func(args []string) {
+			generateCache(args)
+		},
+	},
+	"cached": {
+		Description: "Get the most recent cached commit message",
+		Run: func(args []string) {
+			getCached(args)
 		},
 	},
 	"doctor": {
@@ -117,6 +130,7 @@ func suggest(args []string) {
 	plain := hasFlag(args, "--plain")
 	verbose := hasFlag(args, "--verbose")
 	useAI := hasFlag(args, "--ai")
+	useCache := hasFlag(args, "--cached")
 
 	cfg := config.Load()
 	if cfg.AI.Enabled {
@@ -135,6 +149,39 @@ func suggest(args []string) {
 		}
 		fmt.Fprintln(os.Stderr, "No staged files.")
 		os.Exit(1)
+	}
+
+	c := cache.New()
+	
+	if useCache {
+		cached, err := c.GetLatest()
+		if err == nil {
+			if verbose {
+				fmt.Fprintln(os.Stderr, "Using cached message from", cached.Timestamp.Format("15:04:05"))
+			}
+			if plain {
+				fmt.Println(cached.Message)
+			} else {
+				fmt.Println(cached.Message)
+			}
+			return
+		}
+		if verbose {
+			fmt.Fprintln(os.Stderr, "No valid cache found, generating new message")
+		}
+	}
+
+	cached, err := c.Get(files, patch)
+	if err == nil && !useCache {
+		if verbose {
+			fmt.Fprintln(os.Stderr, "Using cached message for these changes")
+		}
+		if plain {
+			fmt.Println(cached.Message)
+		} else {
+			fmt.Println(cached.Message)
+		}
+		return
 	}
 
 	var msg string
@@ -172,6 +219,7 @@ func suggest(args []string) {
 				if verbose {
 					fmt.Fprintln(os.Stderr, "Generated using AI")
 				}
+				c.Set(files, patch, msg, cfg.AI.Provider)
 			}
 		}
 	} else {
@@ -179,6 +227,9 @@ func suggest(args []string) {
 			fmt.Fprintln(os.Stderr, "AI requested but no API key configured, using heuristics")
 		}
 		msg = prompt.MakePrompt(files, patch)
+		if useAI {
+			c.Set(files, patch, msg, "heuristics")
+		}
 	}
 
 	if plain {
@@ -197,6 +248,106 @@ func suggest(args []string) {
 	}
 
 	fmt.Println(msg)
+}
+
+func generateCache(args []string) {
+	if !inGitRepo() {
+		fmt.Fprintln(os.Stderr, "Error: not a git repository (no .git directory found)")
+		os.Exit(1)
+	}
+
+	verbose := hasFlag(args, "--verbose")
+	cfg := config.Load()
+
+	files, patch, err := diff.StagedChanges(cfg.PatchBytes)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		os.Exit(1)
+	}
+
+	if len(patch) == 0 {
+		if verbose {
+			fmt.Fprintln(os.Stderr, "No staged files to cache.")
+		}
+		return
+	}
+
+	c := cache.New()
+	
+	var msg string
+	var providerName string
+
+	if cfg.AI.APIKey != "" {
+		if verbose {
+			fmt.Fprintln(os.Stderr, "Generating AI cache for", len(files), "files")
+		}
+
+		providerConfig := provider.Config{
+			Provider: cfg.AI.Provider,
+			APIKey:   cfg.AI.APIKey,
+			Model:    cfg.AI.Model,
+			BaseURL:  cfg.AI.BaseURL,
+		}
+
+		aiProvider, err := provider.GetProvider(providerConfig)
+		if err != nil {
+			if verbose {
+				fmt.Fprintln(os.Stderr, "AI provider error:", err)
+			}
+			msg = prompt.MakePrompt(files, patch)
+			providerName = "heuristics"
+		} else {
+			ctx := context.Background()
+			aiMsg, err := aiProvider.GenerateCommitMessage(ctx, files, patch)
+			if err != nil {
+				if verbose {
+					fmt.Fprintln(os.Stderr, "AI generation error:", err)
+				}
+				msg = prompt.MakePrompt(files, patch)
+				providerName = "heuristics"
+			} else {
+				msg = aiMsg
+				providerName = cfg.AI.Provider
+			}
+		}
+	} else {
+		msg = prompt.MakePrompt(files, patch)
+		providerName = "heuristics"
+	}
+
+	err = c.Set(files, patch, msg, providerName)
+	if err != nil {
+		if verbose {
+			fmt.Fprintln(os.Stderr, "Cache save error:", err)
+		}
+		return
+	}
+
+	if verbose {
+		fmt.Fprintln(os.Stderr, "Cached message using", providerName+":", msg)
+	}
+}
+
+func getCached(args []string) {
+	plain := hasFlag(args, "--plain")
+	verbose := hasFlag(args, "--verbose")
+
+	c := cache.New()
+	cached, err := c.GetLatest()
+	if err != nil {
+		if !plain {
+			fmt.Fprintln(os.Stderr, "No cached messages found")
+		}
+		os.Exit(1)
+	}
+
+	if verbose && !plain {
+		fmt.Fprintln(os.Stderr, "Cached at:", cached.Timestamp.Format("2006-01-02 15:04:05"))
+		fmt.Fprintln(os.Stderr, "Provider:", cached.Provider)
+		fmt.Fprintln(os.Stderr, "Files:", strings.Join(cached.Files, ", "))
+	}
+
+	fmt.Println(cached.Message)
 }
 
 func hasFlag(args []string, flag string) bool {
