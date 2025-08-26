@@ -40,29 +40,29 @@ func (c *Cache) GetCacheKey(files []string, patch string) string {
 func (c *Cache) Get(files []string, patch string) (*CachedMessage, error) {
 	key := c.GetCacheKey(files, patch)
 	cachePath := filepath.Join(c.cacheDir, key+".json")
-	
+
 	data, err := os.ReadFile(cachePath)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var cached CachedMessage
 	if err := json.Unmarshal(data, &cached); err != nil {
 		return nil, err
 	}
-	
+
 	if time.Since(cached.Timestamp) > 24*time.Hour {
 		os.Remove(cachePath)
 		return nil, fmt.Errorf("cache expired")
 	}
-	
+
 	return &cached, nil
 }
 
 func (c *Cache) Set(files []string, patch string, message string, provider string) error {
 	key := c.GetCacheKey(files, patch)
 	cachePath := filepath.Join(c.cacheDir, key+".json")
-	
+
 	cached := CachedMessage{
 		Message:   message,
 		Files:     files,
@@ -70,12 +70,12 @@ func (c *Cache) Set(files []string, patch string, message string, provider strin
 		Timestamp: time.Now(),
 		Provider:  provider,
 	}
-	
+
 	data, err := json.Marshal(cached)
 	if err != nil {
 		return err
 	}
-	
+
 	return os.WriteFile(cachePath, data, 0644)
 }
 
@@ -84,10 +84,10 @@ func (c *Cache) GetLatest() (*CachedMessage, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var latest *CachedMessage
 	var latestTime time.Time
-	
+
 	for _, entry := range entries {
 		if !entry.IsDir() && filepath.Ext(entry.Name()) == ".json" {
 			cachePath := filepath.Join(c.cacheDir, entry.Name())
@@ -95,23 +95,23 @@ func (c *Cache) GetLatest() (*CachedMessage, error) {
 			if err != nil {
 				continue
 			}
-			
+
 			var cached CachedMessage
 			if err := json.Unmarshal(data, &cached); err != nil {
 				continue
 			}
-			
+
 			if cached.Timestamp.After(latestTime) {
 				latest = &cached
 				latestTime = cached.Timestamp
 			}
 		}
 	}
-	
+
 	if latest == nil {
 		return nil, fmt.Errorf("no cached messages found")
 	}
-	
+
 	return latest, nil
 }
 

@@ -152,7 +152,7 @@ func suggest(args []string) {
 	}
 
 	c := cache.New()
-	
+
 	if useCache {
 		cached, err := c.GetLatest()
 		if err == nil {
@@ -273,7 +273,7 @@ func generateCache(args []string) {
 	}
 
 	c := cache.New()
-	
+
 	var msg string
 	var providerName string
 
