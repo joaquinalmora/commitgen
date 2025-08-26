@@ -8,7 +8,9 @@ Your commitgen project is now **fully implemented** with complete AI integration
 
 ### ✅ AI Integration (COMPLETE)
 
-- **OpenAI Provider**: Full integration with OpenAI API for commit message generation
+- **OpenAI Provider**: Full integration with OpenAI API (gpt-4o, gpt-4o-mini, gpt-3.5-turbo)
+- **Ollama Provider**: Complete local AI integration (llama3.2, qwen2.5-coder, codellama, deepseek-coder)
+- **Multi-Provider Support**: Seamless switching between cloud and local AI models
 - **Conventional Commits**: Professional messages following industry standards
 - **Company Conventions**: Comprehensive rules synthesized from 5+ authoritative sources
 - **Error Handling**: Robust error handling with intelligent fallback to heuristics
@@ -40,21 +42,30 @@ Your commitgen project is now **fully implemented** with complete AI integration
 ## Commands Available
 
 ```bash
+```bash
 # AI-powered suggestions (fully operational)
-./bin/commitgen suggest --ai               # AI-generated commit message
+./bin/commitgen suggest --ai               # Uses configured provider (OpenAI/Ollama)
 ./bin/commitgen suggest --ai --verbose     # AI with detailed debug output
+
+# Provider-specific testing
+COMMITGEN_AI_PROVIDER=openai ./bin/commitgen suggest --ai
+COMMITGEN_AI_PROVIDER=ollama ./bin/commitgen suggest --ai
+
+# Cache management
 ./bin/commitgen cache                      # Pre-generate and cache message
 ./bin/commitgen cached                     # Retrieve cached message instantly
 
 # Performance comparison
 time ./bin/commitgen suggest --ai          # ~3000ms (real-time AI)
-time ./bin/commitgen cached                # ~60ms (cached retrieval) 
+time ./bin/commitgen cached                # ~60ms (cached retrieval)
 
-# Seamless workflow (recommended)
+## Seamless workflow (recommended)
+
 git add file.md                           # Triggers background cache automatically
 git commit --no-edit                      # Uses cached message instantly
 
-# System management  
+## System management
+
 ./bin/commitgen install-hook               # Install auto-cache git hooks
 ./bin/commitgen uninstall-hook            # Remove git hooks
 ./bin/commitgen doctor                     # Environment diagnostics
@@ -108,23 +119,38 @@ git commit --no-edit  0.02s user 0.02s system 72% cpu 0.051 total
 - **Cache expiry**: 24-hour automatic cleanup
 - **Storage efficiency**: SHA256 deduplication prevents duplicates
 
-## Configuration Examples
+## Setup Examples
 
-### Basic AI Setup
+### OpenAI Setup
 
 ```bash
-# Minimal setup for AI mode
+# Minimal OpenAI setup
 export OPENAI_API_KEY="sk-your-api-key-here"
+./bin/commitgen install-hook
+```
+
+### Ollama Setup
+
+```bash
+# Local AI setup
+ollama pull llama3.2:3b
+export COMMITGEN_AI_PROVIDER="ollama"
 ./bin/commitgen install-hook
 ```
 
 ### Advanced Configuration
 
 ```bash
-# Custom AI settings
+# Custom AI settings for OpenAI
 export OPENAI_API_KEY="sk-your-api-key-here"
-export COMMITGEN_AI=1
+export COMMITGEN_AI_PROVIDER="openai"
+export COMMITGEN_AI_MODEL="gpt-4o"
 export COMMITGEN_DEBUG=1
+
+# Custom AI settings for Ollama
+export COMMITGEN_AI_PROVIDER="ollama"
+export COMMITGEN_AI_MODEL="qwen2.5-coder:7b"
+export COMMITGEN_AI_BASE_URL="http://localhost:11434"
 
 # Install complete system
 ./bin/commitgen install-hook

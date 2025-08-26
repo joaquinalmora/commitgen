@@ -1,6 +1,6 @@
 # Quick Start - commitgen
 
-This file shows the minimal steps a new user should run to try commitgen with full AI capabilities and auto-cache system.
+This file shows the minimal steps a new user should run to try commitgen with full AI capabilities (OpenAI and Ollama) and auto-cache system.
 
 ## 1. Build and Setup
 
@@ -8,9 +8,31 @@ This file shows the minimal steps a new user should run to try commitgen with fu
 git clone https://github.com/joaquinalmora/commitgen.git
 cd commitgen
 go build -o bin/commitgen ./cmd/commitgen
+```
 
-# Set up OpenAI API key for AI-powered suggestions
+### Option A: OpenAI Setup (Cloud AI)
+
+```bash
+# Set up OpenAI API key for cloud AI-powered suggestions
 export OPENAI_API_KEY="sk-your-api-key-here"
+export COMMITGEN_AI_PROVIDER="openai"  # Default
+```
+
+### Option B: Ollama Setup (Local AI)
+
+```bash
+# Install Ollama
+curl -fsSL https://ollama.ai/install.sh | sh
+
+# Pull a model (choose one)
+ollama pull llama3.2:3b              # Recommended: Fast, lightweight
+ollama pull qwen2.5-coder:7b         # Best for code
+ollama pull codellama:7b             # Code-specialized
+ollama pull deepseek-coder:6.7b      # High performance
+
+# Configure commitgen
+export COMMITGEN_AI_PROVIDER="ollama"
+export COMMITGEN_AI_MODEL="llama3.2:3b"  # Or your chosen model
 ```
 
 ## 2. Install Auto-Cache System (Recommended)
@@ -70,7 +92,7 @@ time git add file.md && time git commit --no-edit
 ### AI-Powered Suggestions
 
 ```bash
-# Generate AI commit message (recommended)
+# Generate AI commit message (OpenAI or Ollama)
 ./bin/commitgen suggest --ai
 
 # AI with verbose debug output
@@ -78,6 +100,10 @@ time git add file.md && time git commit --no-edit
 
 # Force AI mode via environment variable
 COMMITGEN_AI=1 ./bin/commitgen suggest
+
+# Test different providers
+COMMITGEN_AI_PROVIDER=openai ./bin/commitgen suggest --ai
+COMMITGEN_AI_PROVIDER=ollama ./bin/commitgen suggest --ai
 ```
 
 ### Cache Management
@@ -133,20 +159,33 @@ git add .
 git commit -m "$(./bin/commitgen cached)"
 ```
 
-### AI + Custom Message
+### Provider Comparison Workflow
 
 ```bash
-# Get AI suggestion as starting point
+# Test OpenAI vs Ollama on the same changes
 git add .
-AI_MSG=$(./bin/commitgen suggest --ai)
-echo "AI suggests: $AI_MSG"
 
-# Customize and commit
-git commit -m "feat: implement user authentication system
+# OpenAI (cloud)
+COMMITGEN_AI_PROVIDER=openai ./bin/commitgen suggest --ai
+# Example: "feat(auth): implement JWT token validation middleware"
 
-- Add JWT token validation
-- Implement password hashing
-- Add user session management
+# Ollama (local)  
+COMMITGEN_AI_PROVIDER=ollama ./bin/commitgen suggest --ai
+# Example: "feat(auth): add JWT authentication middleware"
 
-Based on AI suggestion: $AI_MSG"
+# Choose your preferred provider for commit
+git commit -m "$(COMMITGEN_AI_PROVIDER=ollama ./bin/commitgen suggest --ai)"
+```
+
+### Privacy-First Local AI
+
+```bash
+# Complete privacy with Ollama - no data leaves your machine
+export COMMITGEN_AI_PROVIDER="ollama"
+export COMMITGEN_AI_MODEL="qwen2.5-coder:7b"  # Best for code
+
+# Normal workflow with full privacy
+echo "export function validateUser() {}" >> src/auth.js
+git add src/auth.js
+git commit --no-edit  # Uses local AI, instant via cache
 ```

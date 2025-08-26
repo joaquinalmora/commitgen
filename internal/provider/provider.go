@@ -37,7 +37,3 @@ func GetProvider(config Config) (Provider, error) {
 		return nil, fmt.Errorf("unknown provider: %s", config.Provider)
 	}
 }
-
-func NewOllamaProvider(config Config) (Provider, error) {
-	return nil, fmt.Errorf("ollama provider not implemented yet")
-}

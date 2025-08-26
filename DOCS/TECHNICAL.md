@@ -7,7 +7,10 @@ This document explains the code layout, runtime behavior, and developer-facing d
 - `cmd/commitgen/main.go` — CLI entrypoint and command wiring with AI integration
 - `internal/diff/diff.go` — Git interactions to read staged files and produce trimmed patch
 - `internal/prompt/prompt.go` — Heuristics for fallback commit message generation
-- `internal/provider/` — AI provider implementations (OpenAI, etc.)
+- `internal/provider/` — AI provider implementations (OpenAI, Ollama)
+- `internal/provider/openai.go` — OpenAI API integration with conventional commits
+- `internal/provider/ollama.go` — Ollama local AI integration
+- `internal/provider/provider.go` — Provider interface and factory
 - `internal/cache/cache.go` — High-performance caching system for AI responses
 - `internal/hook/hook.go` — Dual git hook installer (prepare-commit-msg + post-index-change)
 - `internal/shell/shell.go` — zsh plugin-first snippet writer and `.zshrc` block manager
@@ -48,15 +51,19 @@ suggest() → config.Load() → provider.GetProvider() → AI API Call
 
 **Current Providers:**
 
-- `internal/provider/openai.go` — OpenAI API integration with conventional commits
+- `internal/provider/openai.go` — OpenAI API integration (gpt-4o, gpt-4o-mini, gpt-3.5-turbo)
+- `internal/provider/ollama.go` — Ollama local AI integration (llama3.2, qwen2.5-coder, codellama)
 - `internal/provider/provider.go` — Abstract interface for extensibility
 
 ### Configuration
 
 Environment variables control AI behavior:
 
-- `OPENAI_API_KEY` — OpenAI API key for AI suggestions
-- `COMMITGEN_AI=1` — Force AI mode (equivalent to `--ai` flag)  
+- `OPENAI_API_KEY` — OpenAI API key for cloud AI suggestions
+- `COMMITGEN_AI_PROVIDER` — AI provider (`openai` or `ollama`, default: `openai`)
+- `COMMITGEN_AI_MODEL` — Model to use (provider-specific defaults)
+- `COMMITGEN_AI_BASE_URL` — Custom API endpoint (provider-specific defaults)
+- `COMMITGEN_AI=1` — Force AI mode (equivalent to `--ai` flag)
 - `COMMITGEN_DEBUG=1` — Enable verbose debug output
 
 ## Auto-Cache System
@@ -252,10 +259,33 @@ ls -la ~/.cache/commitgen/
 
 ### Adding New AI Providers
 
-1. Implement `internal/provider/Provider` interface
+1. Implement `internal/provider/Provider` interface:
+   - `GenerateCommitMessage(ctx, files, patch) (string, error)`
+   - `Name() string`
+   - `IsConfigured() bool`
 2. Add provider detection in `provider.GetProvider()`
-3. Update configuration documentation
-4. Add comprehensive error handling
+3. Update configuration defaults in `config/config.go`
+4. Add comprehensive error handling and response parsing
+5. Update documentation with setup instructions
+
+### Example: Adding Anthropic Claude
+
+```go
+// internal/provider/anthropic.go
+type AnthropicProvider struct {
+    apiKey string
+    model  string
+    client *http.Client
+}
+
+func NewAnthropicProvider(config Config) (Provider, error) {
+    return &AnthropicProvider{
+        apiKey: config.APIKey,
+        model:  config.Model,
+        client: &http.Client{Timeout: 60 * time.Second},
+    }, nil
+}
+```
 
 ### Cache System Extensions
 

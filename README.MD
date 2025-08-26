@@ -2,11 +2,12 @@
 
 [![CI](https://github.com/joaquinalmora/commitgen/actions/workflows/ci.yml/badge.svg)](https://github.com/joaquinalmora/commitgen/actions/workflows/ci.yml)
 
-AI-powered commit message generation for Git. Generate professional, contextual commit messages from your staged changes using OpenAI integration with intelligent caching and seamless git workflow integration.
+AI-powered commit message generation for Git. Generate professional, contextual commit messages from your staged changes using OpenAI or local Ollama models with intelligent caching and seamless git workflow integration.
 
 ## Features
 
-- **🤖 AI-Powered**: OpenAI integration for professional commit messages following conventional commits
+- **🤖 AI-Powered**: OpenAI and Ollama integration for professional commit messages
+- **🏠 Local & Cloud**: Choose between OpenAI API or local Ollama models
 - **⚡ Auto-Cache System**: Background pre-generation with 50x performance boost (3s → 0.06s)
 - **🔄 Seamless Integration**: Zero-friction git workflow with dual hook system
 - **📝 Smart Conventions**: Comprehensive commit message standards with company-specific rules
@@ -23,8 +24,13 @@ git clone https://github.com/joaquinalmora/commitgen.git
 cd commitgen
 go build -o bin/commitgen ./cmd/commitgen
 
-# Set up OpenAI API key
+# Option A: OpenAI Setup
 export OPENAI_API_KEY="your-api-key-here"
+
+# Option B: Ollama Setup (local AI)
+# Install Ollama first: https://ollama.ai
+ollama pull llama3.2:3b
+export COMMITGEN_AI_PROVIDER="ollama"
 
 # Test AI-powered suggestions
 ./bin/commitgen suggest --ai
@@ -76,8 +82,10 @@ commitgen uninstall-hook                     # Remove git hooks
 
 ### AI Mode (Default with `--ai`)
 
-commitgen integrates with OpenAI to generate professional commit messages following conventional commits:
+commitgen integrates with multiple AI providers to generate professional commit messages:
 
+- **OpenAI Integration**: Cloud-based models (gpt-4o, gpt-4o-mini, gpt-3.5-turbo)
+- **Ollama Support**: Local models (llama3.2, qwen2.5-coder, codellama, deepseek-coder)
 - **Analyzes staged changes** → understands context and impact
 - **Applies company conventions** → follows established standards
 - **Generates professional messages** → proper scope, type, and description
@@ -104,19 +112,50 @@ When AI is unavailable, intelligent heuristics analyze staged changes:
 
 ## Configuration
 
-### OpenAI API Key
+### AI Provider Setup
+
+#### OpenAI (Cloud)
 
 ```bash
 # Set your OpenAI API key
 export OPENAI_API_KEY="sk-your-api-key-here"
+export COMMITGEN_AI_PROVIDER="openai"          # Default
+export COMMITGEN_AI_MODEL="gpt-4o-mini"        # Default model
+```
 
-# Or add to your shell profile
-echo 'export OPENAI_API_KEY="sk-your-api-key-here"' >> ~/.zshrc
+#### Ollama (Local)
+
+```bash
+# Install and setup Ollama
+curl -fsSL https://ollama.ai/install.sh | sh
+ollama pull llama3.2:3b
+
+# Configure commitgen
+export COMMITGEN_AI_PROVIDER="ollama" 
+export COMMITGEN_AI_MODEL="llama3.2:3b"        # Default
+export COMMITGEN_AI_BASE_URL="http://localhost:11434"  # Default
+```
+
+#### Alternative Models
+
+```bash
+# OpenAI models
+export COMMITGEN_AI_MODEL="gpt-4o"
+export COMMITGEN_AI_MODEL="gpt-4o-mini"
+export COMMITGEN_AI_MODEL="gpt-3.5-turbo"
+
+# Ollama models  
+ollama pull qwen2.5-coder:7b && export COMMITGEN_AI_MODEL="qwen2.5-coder:7b"
+ollama pull codellama:7b && export COMMITGEN_AI_MODEL="codellama:7b"
+ollama pull deepseek-coder:6.7b && export COMMITGEN_AI_MODEL="deepseek-coder:6.7b"
 ```
 
 ### Environment Variables
 
-- `OPENAI_API_KEY`: Your OpenAI API key for AI-powered suggestions
+- `OPENAI_API_KEY`: Your OpenAI API key for cloud AI suggestions
+- `COMMITGEN_AI_PROVIDER`: AI provider (`openai` or `ollama`, default: `openai`)
+- `COMMITGEN_AI_MODEL`: Model to use (provider-specific defaults)
+- `COMMITGEN_AI_BASE_URL`: Custom API endpoint (provider-specific defaults)
 - `COMMITGEN_AI=1`: Force AI mode (equivalent to `--ai` flag)
 - `COMMITGEN_DEBUG=1`: Enable verbose output for debugging
 
@@ -148,7 +187,8 @@ go test ./...
 
 ## Privacy & Security
 
-- **API Usage**: Only sends git diff output to OpenAI (no personal data)
+- **OpenAI**: Only sends git diff output to OpenAI (no personal data)
+- **Ollama**: Complete privacy with local AI models (no data sent anywhere)
 - **Local Processing**: All analysis and caching happens locally
 - **Secure Storage**: Cache uses SHA256 hashing for content identification
 - **No Persistence**: No commit history or personal information stored
@@ -165,11 +205,11 @@ go test ./...
 
 ## What's Next
 
-✅ **AI integration** is complete and fully operational!
+✅ **AI integration** is complete and fully operational with multiple providers!
 
 - **Auto-cache system** provides instant commit messages
-- **OpenAI integration** generates professional conventional commits  
+- **OpenAI & Ollama integration** for cloud and local AI models
 - **Dual git hooks** enable seamless developer workflow
-- **Intelligent fallback** ensures reliability
+- **Intelligent fallback** ensures reliability across all scenarios
 
 See `DOCS/USAGE.md` for detailed examples and `DOCS/TECHNICAL.md` for implementation details.
