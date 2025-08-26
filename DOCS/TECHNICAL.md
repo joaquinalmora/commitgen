@@ -9,6 +9,7 @@ This document explains the code layout, the runtime behavior of the CLI and hook
 - `internal/prompt/prompt.go` — Heuristics to produce a one-line suggested subject.
 - `internal/hook/hook.go` — Hook installer writing `prepare-commit-msg` scripts.
 - `internal/shell/shell.go` — zsh plugin-first snippet writer and guarded `.zshrc` block manager.
+- `internal/doctor/doctor.go` — environment & install diagnostics (`commitgen doctor`).
 
 ## Commands (what they do)
 
@@ -75,7 +76,8 @@ Rationale: This delivers true inline ghost text with the plugin's native accept/
 
 - Harden the fallback (debounce + accurate inside-quote detection).
 - Add optional `prepare-commit-msg` prefill mode (opt-in) as an alternative UX.
-- Add a `commitgen doctor` command to surface whether the snippet is installed and whether the plugin is active.
+
+Note: `commitgen doctor` has been implemented to help validate local installs and environment (see `internal/doctor/doctor.go`).
 
 Keep this document synchronized with code changes. Use it as the developer reference when working on the shell integration and related tests.
 

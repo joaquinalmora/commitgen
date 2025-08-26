@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/joaquinalmora/commitgen/internal/diff"
+	"github.com/joaquinalmora/commitgen/internal/doctor"
 	"github.com/joaquinalmora/commitgen/internal/hook"
 	"github.com/joaquinalmora/commitgen/internal/prompt"
 	"github.com/joaquinalmora/commitgen/internal/shell"
@@ -31,11 +32,20 @@ var commands = map[string]Command{
 			hook.InstallHook()
 		},
 	},
-	"init-shell": {
-		Description: "Install shell snippet and guarded .zshrc block",
+	"install-shell": {
+		Description: "(alias) Install shell snippet and guarded .zshrc block",
 		Run: func(args []string) {
 			if err := shell.InstallShell(); err != nil {
 				fmt.Fprintln(os.Stderr, "install shell failed:", err)
+			}
+		},
+	},
+	"doctor": {
+		Description: "Run environment checks and print a diagnostic report",
+		Run: func(args []string) {
+			if err := doctor.Run(); err != nil {
+				fmt.Fprintln(os.Stderr, "doctor checks failed:", err)
+				os.Exit(1)
 			}
 		},
 	},

@@ -12,6 +12,16 @@ Run tests locally:
 go test ./...
 ```
 
+See `USAGE.md` for a quickstart and basic commands. Run quick diagnostics with the new `doctor` command:
+
+```bash
+# build the binary if needed
+go build -o bin/commitgen ./cmd/commitgen
+
+# run environment checks
+./bin/commitgen doctor
+```
+
 Ghost (inline) suggestions in zsh
 --------------------------------
 
@@ -33,7 +43,7 @@ Pause — a suggested single-line commit subject should appear as ghost text. Ac
 
 Install (optional)
 
-To install the snippet so it loads automatically:
+To install the snippet so it loads automatically, run:
 
 ```bash
 # from the repo root
