@@ -5,16 +5,18 @@ This document outlines the AI implementation strategy for commitgen, building on
 ## Current Status ✅
 
 ### Foundation Complete
+
 - ✅ Provider interface defined in `internal/provider/provider.go`
-- ✅ Configuration system in `internal/config/config.go` 
+- ✅ Configuration system in `internal/config/config.go`
 - ✅ CLI integration with `--ai` flag in `cmd/commitgen/main.go`
 - ✅ Fallback mechanism to heuristics when AI fails
 - ✅ Environment variable support (`COMMITGEN_AI=1`, `COMMITGEN_AI_PROVIDER`, etc.)
 
 ### Ready for Implementation
+
 The AI integration follows a clean architecture:
 
-```
+```text
 suggest() -> AI Provider -> LLM API -> Response
     ↓ (on error)
    Heuristics (fallback)
@@ -41,6 +43,7 @@ export COMMITGEN_AI_FALLBACK=true           # fallback to heuristics on error
 ## Implementation Roadmap
 
 ### Phase 1: OpenAI Provider (Recommended First)
+
 **File:** `internal/provider/openai.go`
 
 ```go
@@ -59,12 +62,14 @@ func (p *OpenAIProvider) GenerateCommitMessage(ctx context.Context, files []stri
 ```
 
 **Key considerations:**
+
 - Use `gpt-4o-mini` as default (cost-effective, fast)
 - Prompt engineering for concise, conventional commits
 - Proper error handling and rate limiting
 - Token limit awareness (truncate large patches)
 
 ### Phase 2: Ollama Provider (Local LLM Support)
+
 **File:** `internal/provider/ollama.go`
 
 ```go
@@ -76,16 +81,18 @@ type OllamaProvider struct {
 ```
 
 **Benefits:**
+
 - Privacy-first (everything local)
 - No API costs
 - Support for models like `llama3.2:3b`, `qwen2.5-coder`
 
 ### Phase 3: Prompt Engineering
+
 **File:** `internal/provider/prompt.go`
 
 Create consistent prompts that work across providers:
 
-```
+```text
 You are a git commit message generator. Generate a concise, conventional commit message.
 
 Files changed: file1.go, file2.md
@@ -104,6 +111,7 @@ Output only the commit message, nothing else.
 ## Integration Points
 
 ### CLI Usage
+
 ```bash
 # Use AI with OpenAI
 export COMMITGEN_AI_API_KEY=sk-xxxxx
@@ -120,28 +128,33 @@ export COMMITGEN_AI=1
 ```
 
 ### Shell Integration
+
 The existing zsh integration will automatically use AI when configured:
 
 ```bash
 git commit -m "  # Shows AI-generated suggestion as ghost text
 ```
 
-### Git Hook Integration  
+### Git Hook Integration
+
 The prepare-commit-msg hook will automatically use AI when enabled.
 
 ## Testing Strategy
 
 ### Unit Tests
+
 - Mock provider responses
 - Test fallback mechanisms  
 - Validate prompt construction
 
 ### Integration Tests
+
 - Test with real API keys (optional, CI)
 - Test Ollama local server
 - Test error scenarios
 
 ### Manual Testing
+
 ```bash
 # Test different scenarios
 echo "test" > test.txt && git add test.txt
@@ -154,13 +167,15 @@ COMMITGEN_AI_API_KEY=invalid ./bin/commitgen suggest --ai --verbose
 ## Error Handling
 
 The system gracefully handles:
+
 - Missing API keys → fallback to heuristics
 - Network errors → fallback to heuristics  
 - Rate limiting → fallback to heuristics
 - Invalid responses → fallback to heuristics
 
 Verbose mode shows what's happening:
-```
+
+```bash
 $ ./bin/commitgen suggest --ai --verbose
 Using AI provider: openai
 AI generation error: rate limit exceeded

@@ -139,6 +139,15 @@ func (p *OpenAIProvider) GenerateCommitMessage(ctx context.Context, files []stri
 
 	message := strings.TrimSpace(openAIResp.Choices[0].Message.Content)
 	message = strings.Trim(message, `"'`)
+	
+	if strings.HasPrefix(message, "```") {
+		lines := strings.Split(message, "\n")
+		if len(lines) > 1 {
+			message = strings.Join(lines[1:], "\n")
+		}
+		message = strings.TrimSuffix(message, "```")
+		message = strings.TrimSpace(message)
+	}
 
 	if len(message) > 50 {
 		lines := strings.Split(message, "\n")
@@ -172,7 +181,7 @@ func buildPrompt(files []string, patch string) string {
 		prompt.WriteString(patch + "\n")
 	}
 
-	prompt.WriteString("\nGenerate a commit message following the conventions provided in the system message.")
+	prompt.WriteString("\nGenerate only the commit message text. Do not include any markdown formatting, code blocks, or explanations. Return only the raw commit message.")
 
 	return prompt.String()
 }

@@ -7,6 +7,7 @@ Your commitgen project is now **fully prepared** for AI implementation! The foun
 ## What's Been Completed
 
 ### ✅ Core Infrastructure
+
 - **Command System**: Complete CLI with all necessary commands
 - **Shell Integration**: zsh plugin-first with native fallback  
 - **Git Hooks**: Install/uninstall prepare-commit-msg hooks
@@ -15,6 +16,7 @@ Your commitgen project is now **fully prepared** for AI implementation! The foun
 - **Documentation**: Clean, professional docs with no markdown lint errors
 
 ### ✅ AI-Ready Architecture
+
 - **Provider Interface**: `internal/provider/provider.go` with clean abstraction
 - **Configuration System**: `internal/config/config.go` with environment variables
 - **CLI Integration**: `--ai` flag and `COMMITGEN_AI=1` support
@@ -22,6 +24,7 @@ Your commitgen project is now **fully prepared** for AI implementation! The foun
 - **Error Handling**: Comprehensive error handling with verbose mode
 
 ### ✅ Quality Standards
+
 - **No Comments**: Clean, professional codebase per your requirements
 - **Markdown Compliance**: All docs follow markdown linting standards
 - **Test Coverage**: Unit and integration tests covering core functionality
@@ -106,7 +109,7 @@ Update bin/commitgen, cmd/commitgen/main.go (+1 more)
 
 The AI implementation follows clean architecture principles:
 
-```
+```text
 suggest() 
   ↓
 config.Load() → Get user preferences
@@ -119,6 +122,7 @@ prompt.MakePrompt() → Fallback to heuristics
 ```
 
 **Benefits:**
+
 - **Modular**: Easy to add new providers (Anthropic, Cohere, etc.)
 - **Reliable**: Always works even when AI fails
 - **Configurable**: Environment-driven configuration
