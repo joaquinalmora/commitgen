@@ -143,8 +143,10 @@ if _cg_autosuggest_available; then
     [[ $BUFFER == "git commit -m \""* ]] || [[ $BUFFER == "gc \""* ]] || return 1
     commitgen suggest --ai --plain 2>/dev/null
   }
-  # ensure strategy order: commitgen first, then history
+  # ensure strategy order: commitgen first, then history (avoid duplicates)
   if [[ -n "${ZSH_AUTOSUGGEST_STRATEGY-}" ]]; then
+    # Remove any existing 'commitgen' entries and prepend it
+    ZSH_AUTOSUGGEST_STRATEGY=("${(@)ZSH_AUTOSUGGEST_STRATEGY:#commitgen}")
     export ZSH_AUTOSUGGEST_STRATEGY=(commitgen ${ZSH_AUTOSUGGEST_STRATEGY[@]})
   else
     export ZSH_AUTOSUGGEST_STRATEGY=(commitgen history)
