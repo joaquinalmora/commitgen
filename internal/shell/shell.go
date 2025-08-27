@@ -141,7 +141,9 @@ if _cg_autosuggest_available; then
   _zsh_autosuggest_strategy_commitgen() {
     # only run for exact patterns: git commit -m " or gc "
     [[ $BUFFER == "git commit -m \""* ]] || [[ $BUFFER == "gc \""* ]] || return 1
-    commitgen suggest --ai --plain 2>/dev/null
+    local suggestion
+    suggestion=$(commitgen suggest --ai --plain 2>/dev/null)
+    [[ -n "$suggestion" ]] && echo "${suggestion}\""
   }
   # ensure strategy order: commitgen first, then history (avoid duplicates)
   if [[ -n "${ZSH_AUTOSUGGEST_STRATEGY-}" ]]; then
@@ -167,11 +169,10 @@ else
     zle -M "$sug"
   }
   function cg-accept-preview() {
-    # insert suggestion into the quoted message
-    local before=${BUFFER%%\"*}\"
-    local after=
-    # replace or append
-    BUFFER=${BUFFER%%\"*}\"$(commitgen suggest --ai --plain 2>/dev/null)\"${BUFFER#*\"}
+    # insert suggestion into the quoted message with closing quote
+    local suggestion
+    suggestion=$(commitgen suggest --ai --plain 2>/dev/null)
+    [[ -n "$suggestion" ]] && BUFFER=${BUFFER%%\"*}\"${suggestion}\"
     zle reset-prompt
   }
   zle -N cg-accept-preview
