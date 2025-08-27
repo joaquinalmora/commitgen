@@ -1,298 +1,228 @@
-# commitgen — Technical Reference
+# Technical Reference
 
-This document explains the code layout, runtime behavior, and developer-facing details useful when extending or packaging the project.
+Developer-facing documentation for extending and maintaining commitgen.
 
-## Repository Layout (Key Files)
+## Architecture Overview
 
-- `cmd/commitgen/main.go` — CLI entrypoint and command wiring with AI integration
-- `internal/diff/diff.go` — Git interactions to read staged files and produce trimmed patch
-- `internal/prompt/prompt.go` — Heuristics for fallback commit message generation
-- `internal/provider/` — AI provider implementations (OpenAI, Ollama)
-- `internal/provider/openai.go` — OpenAI API integration with conventional commits
-- `internal/provider/ollama.go` — Ollama local AI integration
-- `internal/provider/provider.go` — Provider interface and factory
-- `internal/cache/cache.go` — High-performance caching system for AI responses
-- `internal/hook/hook.go` — Dual git hook installer (prepare-commit-msg + post-index-change)
-- `internal/shell/shell.go` — zsh plugin-first snippet writer and `.zshrc` block manager
-- `internal/doctor/doctor.go` — Environment & installation diagnostics
-
-## Commands (What They Do)
-
-### Core Commands
-
-- `commitgen suggest [--ai] [--plain] [--verbose]` — Generate commit message suggestion
-  - `--ai`: Use AI provider (OpenAI) for professional commit messages
-  - `--plain`: Output exactly one trimmed subject line (shell/script friendly)
-  - `--verbose`: Print diagnostic output to stderr
-  - Without `--ai`: Use heuristic-based fallback generation
-
-### Cache Management
-
-- `commitgen cache` — Pre-generate and cache AI commit message for staged changes
-- `commitgen cached` — Retrieve most recent cached commit message (instant)
-
-### Installation Management
-
-- `commitgen install-hook` — Install dual git hook system for auto-cache workflow
-- `commitgen uninstall-hook` — Remove git hooks with backup restoration
-- `commitgen install-shell` — Install zsh shell integration snippet
-- `commitgen uninstall-shell` — Remove zsh integration
-- `commitgen doctor` — Run comprehensive environment diagnostics
-
-## AI Integration Architecture
-
-### Provider System
+commitgen follows a modular architecture with clear separation of concerns:
 
 ```text
-suggest() → config.Load() → provider.GetProvider() → AI API Call
-                                     ↓
-                              Fallback to heuristics
+CLI → Config → Provider → AI API → Response
+             ↓
+        Cache System ← Git Hooks
+             ↓  
+     Shell Integration
 ```
 
-**Current Providers:**
+## Repository Layout
 
-- `internal/provider/openai.go` — OpenAI API integration (gpt-4o, gpt-4o-mini, gpt-3.5-turbo)
-- `internal/provider/ollama.go` — Ollama local AI integration (llama3.2, qwen2.5-coder, codellama)
-- `internal/provider/provider.go` — Abstract interface for extensibility
+**Core Components:**
+- `cmd/commitgen/main.go` — CLI entrypoint and command routing
+- `internal/config/config.go` — Environment configuration management
+- `internal/diff/diff.go` — Git interactions and patch generation
+- `internal/prompt/prompt.go` — Heuristic fallback message generation
+
+**AI Integration:**
+- `internal/provider/provider.go` — Provider interface and factory
+- `internal/provider/openai.go` — OpenAI API integration  
+- `internal/provider/ollama.go` — Ollama local AI integration
+- `internal/provider/conventions.md` — Commit message standards
+
+**Performance & Integration:**
+- `internal/cache/cache.go` — High-performance caching system
+- `internal/hook/hook.go` — Git hook installer and manager
+- `internal/shell/shell.go` — Shell integration (zsh autosuggestions)
+- `internal/doctor/doctor.go` — System diagnostics
+
+## AI Provider System
+
+### Interface
+
+```go
+type Provider interface {
+    GenerateCommitMessage(ctx context.Context, files []string, patch string) (string, error)
+}
+```
+
+### Implementation
+
+```go
+// Factory pattern for provider selection
+func GetProvider(cfg *Config) (Provider, error) {
+    switch cfg.Provider {
+    case "openai":
+        return NewOpenAIProvider(cfg.OpenAI), nil
+    case "ollama":
+        return NewOllamaProvider(cfg.Ollama), nil
+    default:
+        return nil, fmt.Errorf("unsupported provider: %s", cfg.Provider)
+    }
+}
+```
 
 ### Configuration
 
 Environment variables control AI behavior:
 
-- `OPENAI_API_KEY` — OpenAI API key for cloud AI suggestions
-- `COMMITGEN_AI_PROVIDER` — AI provider (`openai` or `ollama`, default: `openai`)
-- `COMMITGEN_AI_MODEL` — Model to use (provider-specific defaults)
-- `COMMITGEN_AI_BASE_URL` — Custom API endpoint (provider-specific defaults)
-- `COMMITGEN_AI=1` — Force AI mode (equivalent to `--ai` flag)
-- `COMMITGEN_DEBUG=1` — Enable verbose debug output
-
-## Auto-Cache System
-
-### Architecture Overview
-
-The cache system provides 50x performance improvement by pre-generating AI responses:
-
-```text
-git add → post-index-change hook → background cache generation
-git commit → prepare-commit-msg hook → instant cached message insertion
+```bash
+OPENAI_API_KEY=sk-xxx          # OpenAI API authentication
+COMMITGEN_PROVIDER=ollama      # Provider selection
+COMMITGEN_MODEL=llama3.2:3b    # Model override
+OLLAMA_HOST=localhost:11434    # Ollama server endpoint
 ```
 
-### Cache Storage
+## Cache System
 
-```text
-~/.cache/commitgen/
-├── messages/
-│   ├── a1b2c3d4.json    # Cached message with metadata  
-│   └── e5f6g7h8.json    # Content hash → message mapping
-└── latest.json          # Pointer to most recent cache entry
+### Performance Goals
+
+- **Target**: Sub-100ms commit message retrieval
+- **Method**: Background pre-generation via git hooks
+- **Storage**: Content-addressed JSON files
+- **Invalidation**: SHA256 hash-based change detection
+
+### Implementation
+
+```go
+type CacheEntry struct {
+    Message   string    `json:"message"`
+    Files     []string  `json:"files"`
+    DiffHash  string    `json:"diff_hash"`
+    Timestamp time.Time `json:"timestamp"`
+    Provider  string    `json:"provider"`
+}
 ```
 
-### Cache Lifecycle
+### Workflow
 
-1. **Content Hashing**: SHA256 of staged diff for deduplication
-2. **Generation**: AI API call with commit conventions  
-3. **Storage**: JSON with message, timestamp, hash metadata
-4. **Expiry**: 24-hour automatic cleanup
-5. **Retrieval**: Hash-based lookup for instant access
+1. `git add` → `post-index-change` hook → background cache generation
+2. `git commit` → `prepare-commit-msg` hook → instant cache retrieval
+3. Cache miss → fallback to real-time AI generation
 
-## Dual Git Hook System
+## Git Hook System
 
-### Hook Implementation
+### Hooks Installed
 
-**prepare-commit-msg Hook:**
+**prepare-commit-msg**: Injects cached AI messages into commit editor
+```bash
+#!/bin/sh
+# .git/hooks/prepare-commit-msg
+commitgen cached > "$1" 2>/dev/null || true
+```
 
-- Triggers on `git commit` before editor opens
-- Tries cached message first (instant: ~0.05s)
-- Falls back to real-time AI generation if no cache
-- Inserts message into commit file automatically
-- Preserves existing commit messages (non-destructive)
+**post-index-change**: Triggers background cache generation  
+```bash  
+#!/bin/sh
+# .git/hooks/post-index-change  
+commitgen cache >/dev/null 2>&1 &
+```
 
-**post-index-change Hook:**
+### Hook Management
 
-- Triggers on `git add` when index changes
-- Runs cache generation in background (non-blocking)
-- No impact on `git add` performance
-- Ensures fresh cache available for next commit
+```go
+func InstallHooks(repoPath string) error {
+    // Backup existing hooks
+    // Install new hooks with proper permissions
+    // Validate installation
+}
 
-### Installation Safety
+func UninstallHooks(repoPath string) error {
+    // Restore backed up hooks
+    // Clean up commitgen hooks
+}
+```
 
-- Backs up existing hooks automatically
-- Restores backups on uninstall
-- Detects commitgen-created hooks to prevent conflicts
-- Cross-platform shell compatibility
+## Shell Integration
 
-## Performance Benchmarks
+### zsh Autosuggestions
 
-### Real-World Measurements
+The shell integration provides ghost text suggestions:
 
 ```bash
-# Real-time AI (no cache)
-time ./bin/commitgen suggest --ai
-# Result: 3.142s user time
-
-# Cached retrieval  
-time ./bin/commitgen cached
-# Result: 0.060s user time (52x faster)
-
-# Complete workflow with auto-cache
-time git add . && time git commit --no-edit  
-# Result: 0.030s + 0.051s = 0.081s total
+git commit -m "   # ← AI suggestion appears here
 ```
 
-### Cache Hit Scenarios
+### Implementation Strategy
 
-- **Identical content**: 100% cache hit (SHA256 match)
-- **Modified content**: New generation triggered  
-- **24h expiry**: Automatic cleanup prevents stale data
-- **Storage efficiency**: Deduplication via content hashing
+1. **Plugin Detection**: Check for `zsh-autosuggestions`
+2. **Strategy Injection**: Add `commitgen` to suggestion strategies
+3. **Context Matching**: Trigger only on `git commit -m "` patterns
+4. **API Integration**: Call `commitgen suggest --ai --plain`
 
-## Suggest Flow (High-Level)
-
-### AI Mode (Default with `--ai`)
-
-1. `suggest --ai` calls `internal/diff.StagedChanges(limit)` to get `files []string` and trimmed `patch string`
-2. `config.Load()` determines AI provider settings and API configuration
-3. `provider.GetProvider()` creates configured AI provider (OpenAI, etc.)
-4. `provider.GenerateCommitMessage(files, patch)` sends request to AI API
-5. AI response parsed and formatted according to conventional commits
-6. Output formatted by flags (`--plain` vs normal; debug to stderr with `--verbose`)
-7. Fallback to heuristics if AI fails
-
-### Heuristic Mode (Fallback)
-
-1. `suggest` (no `--ai`) calls `internal/diff.StagedChanges(limit)`
-2. `prompt.MakePrompt(files, patch)` applies bucket heuristics:
-   - `isTestsOnly` / `isDocsOnly` / `isConfigOnly` / `isRenameOnly`
-   - Default: `feat: update <file1>, <file2> (+N more)`
-3. Output formatted according to flags
-
-### Cache Flow
-
-1. `cache` command generates message via AI mode and stores result
-2. Content hashed with SHA256 for deduplication  
-3. Message stored in `~/.cache/commitgen/messages/<hash>.json`
-4. `latest.json` updated to point to newest cache entry
-5. `cached` command retrieves via hash lookup (instant)
-
-## Plugin-First zsh Design
-
-This project uses a plugin-first approach for zsh inline suggestions with complete AI integration.
-
-### Goal
-
-Surface AI-generated, professional commit suggestions as inline ghost text in interactive zsh shells. Provide safe, conservative fallback for users without `zsh-autosuggestions`.
-
-### User-Facing Contract
-
-- **Input**: Local repository with staged changes + OpenAI API access
-- **Output**: Professional conventional commit message (AI-generated)
-- **Fallback**: Intelligent heuristics when AI unavailable
-- **Privacy**: Only git diff sent to AI (no personal data)
-- **Performance**: Auto-cache provides instant responses
-
-### Plugin-First Behavior (zsh-autosuggestions)
-
-- Detects `zsh-autosuggestions` using environment vars and plugin paths
-- Provides strategy function `_zsh_autosuggest_strategy_commitgen`
-- Calls `commitgen cached` first (instant), falls back to `commitgen suggest --ai`
-- Prepends strategy for prioritization over history suggestions
-
-**Rationale**: Delivers true inline ghost text with native accept/decline behavior (right-arrow to accept). Non-invasive: only reads staged files, doesn't modify commit files.
-
-### Native Fallback (POSTDISPLAY)
-
-- If plugin absent, shows dim preview using `zle -M`
-- Provides widget `cg-accept-preview` bound to Ctrl-F
-- Conservative approach: explicit user acceptance required
-
-## Development
-
-### Run Tests
-
-```bash
-go test ./...
-```
-
-### Run Diagnostics
-
-```bash
-./bin/commitgen doctor
-```
-
-### Cache Development Tools
-
-```bash
-# View cache contents
-./bin/commitgen cached
-
-# Force regenerate cache
-./bin/commitgen cache
-
-# Cache location
-ls -la ~/.cache/commitgen/
-```
-
-### Implementation Notes
-
-- Shell snippet: `internal/shell/commitgen.zsh` → `~/.config/commitgen.zsh`
-- Cache suggestion is synchronous and fast (0.06s via auto-cache)
-- Store cache in `XDG_CACHE_HOME` with user-only permissions
-- Hooks are idempotent and tolerant of re-installation
-
-## Quality Assurance
-
-### Testing Strategy
-
-- **Unit Tests**: `internal/prompt`, `internal/cache`, `internal/provider`
-- **Integration Tests**: End-to-end workflow with git operations
-- **Manual QA**: Interactive testing in zsh with/without plugins
-- **Performance Tests**: Cache hit rates and response times
-
-### Edge Cases
-
-- **Slow AI responses**: Auto-cache eliminates delays  
-- **Plugin detection**: Supports Oh My Zsh, antigen, zplug
-- **Shell customizations**: Snippet is idempotent and re-source safe
-- **Network failures**: Graceful fallback to heuristics
-
-## Extension Points
+## Development Guidelines
 
 ### Adding New AI Providers
 
-1. Implement `internal/provider/Provider` interface:
-   - `GenerateCommitMessage(ctx, files, patch) (string, error)`
-   - `Name() string`
-   - `IsConfigured() bool`
-2. Add provider detection in `provider.GetProvider()`
-3. Update configuration defaults in `config/config.go`
-4. Add comprehensive error handling and response parsing
-5. Update documentation with setup instructions
+1. Implement the `Provider` interface
+2. Add configuration options to `internal/config/`
+3. Register in provider factory
+4. Add tests for API integration
+5. Update documentation
 
-### Example: Adding Anthropic Claude
+### Testing Strategy
 
-```go
-// internal/provider/anthropic.go
-type AnthropicProvider struct {
-    apiKey string
-    model  string
-    client *http.Client
-}
-
-func NewAnthropicProvider(config Config) (Provider, error) {
-    return &AnthropicProvider{
-        apiKey: config.APIKey,
-        model:  config.Model,
-        client: &http.Client{Timeout: 60 * time.Second},
-    }, nil
-}
+**Unit Tests**: Mock provider responses, test error handling
+```bash
+go test ./internal/provider/...
 ```
 
-### Cache System Extensions
+**Integration Tests**: Test with real APIs (optional)
+```bash
+OPENAI_API_KEY=sk-xxx go test ./e2e/...
+```
 
-- **Custom TTL**: Configurable expiry times
-- **Compression**: Reduce storage footprint  
-- **Distributed Cache**: Share between team members
-- **Metrics**: Cache hit rates and performance tracking
+**Manual Testing**: End-to-end workflow validation
+```bash
+git add . && commitgen suggest --ai --verbose
+```
 
-**Note**: Use `commitgen doctor` to validate installations and diagnose issues. Keep this document synchronized with code changes.
+### Error Handling
 
+commitgen follows graceful degradation:
+
+1. **AI Provider Failure** → Fallback to heuristics  
+2. **Network Issues** → Use cached message if available
+3. **Cache Miss** → Real-time generation
+4. **Total Failure** → Empty message (let user write manually)
+
+### Performance Considerations
+
+**Cache Strategy**: Content-addressed storage prevents duplicate work
+**Background Processing**: Non-blocking cache generation via git hooks  
+**Timeout Handling**: 30-second timeout for AI API calls
+**Memory Usage**: Streaming diff processing for large repositories
+
+## Troubleshooting
+
+### Common Development Issues
+
+**Provider Not Found**: Check factory registration in `provider.go`
+**Cache Not Working**: Verify git hook installation and permissions
+**Shell Integration Issues**: Check zsh plugin compatibility
+**API Timeouts**: Increase timeout or implement retry logic
+
+### Debugging Tools
+
+```bash
+commitgen doctor              # System health check
+commitgen suggest --verbose   # Debug AI generation  
+commitgen cache --debug       # Debug cache system
+ls -la .git/hooks/            # Check hook installation
+```
+
+## Contributing
+
+### Code Style
+
+- Follow Go conventions (`gofmt`, `golint`)
+- Add tests for new functionality  
+- Update documentation for API changes
+- Use conventional commits for development
+
+### Release Process
+
+1. Update version in `cmd/commitgen/main.go`
+2. Create git tag: `git tag v1.x.x`
+3. Push tag: `git push origin v1.x.x`
+4. GitHub Actions handles release automation
+
+This architecture supports the project's goals of high performance, reliability, and extensibility while maintaining a clean separation between AI providers, caching, and user interfaces.

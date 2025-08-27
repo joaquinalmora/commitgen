@@ -134,9 +134,9 @@ _cg_autosuggest_available() {
 
 if _cg_autosuggest_available; then
   _zsh_autosuggest_strategy_commitgen() {
-    # only run for git commit -m "..." buffers
-    [[ $BUFFER == git\ commit* && $BUFFER == *-m\ "* ]] || return 1
-    commitgen suggest --plain 2>/dev/null
+    # only run for exact patterns: git commit -m " or gc "
+    [[ $BUFFER == "git commit -m \""* ]] || [[ $BUFFER == "gc \""* ]] || return 1
+    commitgen suggest --ai --plain 2>/dev/null
   }
   # ensure strategy order: commitgen first, then history
   if [[ -n "${ZSH_AUTOSUGGEST_STRATEGY-}" ]]; then
@@ -147,12 +147,12 @@ if _cg_autosuggest_available; then
 else
   # native POSTDISPLAY preview fallback
   _cg_update_preview() {
-    [[ $BUFFER == git\ commit* && $BUFFER == *-m\ "* ]] || return 1
+    [[ $BUFFER == "git commit -m \""* ]] || [[ $BUFFER == "gc \""* ]] || return 1
     # extract inside-quotes content
-    local inside=${BUFFER#*"}
-    inside=${inside%%"*}
+    local inside=${BUFFER#*\"}
+    inside=${inside%%\"*}
     local sug
-    sug=$(commitgen suggest --plain 2>/dev/null || true)
+    sug=$(commitgen suggest --ai --plain 2>/dev/null || true)
     [[ -z $sug ]] && return 1
     if [[ $inside == "$sug" ]]; then
       return 1
@@ -161,10 +161,10 @@ else
   }
   function cg-accept-preview() {
     # insert suggestion into the quoted message
-    local before=${BUFFER%%\"*}\"  # up to first quote
+    local before=${BUFFER%%\"*}\"
     local after=
     # replace or append
-    BUFFER=${BUFFER%%\"*}\"$(commitgen suggest --plain 2>/dev/null)\"${BUFFER#*\"}
+    BUFFER=${BUFFER%%\"*}\"$(commitgen suggest --ai --plain 2>/dev/null)\"${BUFFER#*\"}
     zle reset-prompt
   }
   zle -N cg-accept-preview
