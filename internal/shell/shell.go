@@ -122,17 +122,22 @@ func pluginFirstSnippet() string {
 	return `# commitgen zsh snippet (plugin-first)
 # plugin strategy for zsh-autosuggestions
 _cg_autosuggest_available() {
-  # detect autosuggestions plugin
+  # detect autosuggestions plugin more thoroughly
   if [[ -n ${ZSH_AUTOSUGGEST_DIR-} ]]; then
     return 0
   fi
   if [[ -f ${ZSH:-$HOME/.oh-my-zsh}/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
     return 0
   fi
+  # Check if autosuggestions functions exist
+  if [[ $(type -w _zsh_autosuggest_strategy_history 2>/dev/null) == *function* ]]; then
+    return 0
+  fi
   return 1
 }
 
 if _cg_autosuggest_available; then
+  # Use zsh-autosuggestions strategy (preferred)
   _zsh_autosuggest_strategy_commitgen() {
     # only run for exact patterns: git commit -m " or gc "
     [[ $BUFFER == "git commit -m \""* ]] || [[ $BUFFER == "gc \""* ]] || return 1
@@ -145,7 +150,7 @@ if _cg_autosuggest_available; then
     export ZSH_AUTOSUGGEST_STRATEGY=(commitgen history)
   fi
 else
-  # native POSTDISPLAY preview fallback
+  # native fallback only when autosuggestions not available
   _cg_update_preview() {
     [[ $BUFFER == "git commit -m \""* ]] || [[ $BUFFER == "gc \""* ]] || return 1
     # extract inside-quotes content
