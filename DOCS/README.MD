@@ -20,7 +20,7 @@ git add . && git commit  # AI suggestions appear automatically
 **That's it!** 🎉 The setup script handles everything: environment, API keys, and shell integration.
 
 ## Features
-
+as
 - **🤖 AI-Powered**: OpenAI and Ollama integration for professional commit messages
 - **🏠 Local & Cloud**: Choose between OpenAI API or local Ollama models  
 - **⚡ Auto-Cache System**: Background pre-generation with 50x performance boost (3s → 0.06s)
