@@ -6,13 +6,11 @@ import (
 	"strings"
 )
 
-// buildSharedPrompt creates the core prompt content used by both providers
 func buildSharedPrompt(files []string, patch string) string {
 	var prompt strings.Builder
 
 	prompt.WriteString("Analyze these code changes and generate a professional commit message.\n\n")
 
-	// Provide more context about the files
 	prompt.WriteString("Files modified:\n")
 	for i, file := range files {
 		if i >= 5 {
@@ -22,7 +20,6 @@ func buildSharedPrompt(files []string, patch string) string {
 		prompt.WriteString("- " + file + "\n")
 	}
 
-	// Give guidance for multi-file commits
 	if len(files) > 3 {
 		prompt.WriteString("\nThis is a multi-file change. Focus on the main purpose and scope.\n")
 		prompt.WriteString("Look for the common theme across all changes.\n")
@@ -51,14 +48,11 @@ func buildSharedPrompt(files []string, patch string) string {
 	return prompt.String()
 }
 
-// GetBuiltinConventions returns the embedded conventions.md content
 func GetBuiltinConventions() (string, error) {
 	return loadConventions()
 }
 
-// LoadConventionsWithSource loads conventions and returns the source
 func LoadConventionsWithSource() (content string, source string, err error) {
-	// Try custom conventions first
 	customPaths := []string{"./conventions.md", "./internal/provider/conventions.md"}
 
 	for _, path := range customPaths {
@@ -67,7 +61,6 @@ func LoadConventionsWithSource() (content string, source string, err error) {
 		}
 	}
 
-	// Fall back to built-in
 	content, err = loadConventions()
 	if err != nil {
 		return "", "", err

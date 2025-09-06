@@ -12,11 +12,33 @@ import (
 	"github.com/joaquinalmora/commitgen/internal/config"
 	"github.com/joaquinalmora/commitgen/internal/diff"
 	"github.com/joaquinalmora/commitgen/internal/doctor"
+	"github.com/joaquinalmora/commitgen/internal/errors"
 	"github.com/joaquinalmora/commitgen/internal/hook"
+	"github.com/joaquinalmora/commitgen/internal/logger"
 	"github.com/joaquinalmora/commitgen/internal/prompt"
 	"github.com/joaquinalmora/commitgen/internal/provider"
 	"github.com/joaquinalmora/commitgen/internal/shell"
 )
+
+var (
+	version = "dev"
+	commit  = "unknown"
+	date    = "unknown"
+)
+
+// handleError prints user-friendly error messages and exits with appropriate code
+func handleError(err error) {
+	if userErr, ok := err.(errors.UserError); ok {
+		fmt.Fprintln(os.Stderr, "Error:", userErr.Message)
+		if userErr.Help != "" {
+			fmt.Fprintln(os.Stderr, "\nHelp:", userErr.Help)
+		}
+		os.Exit(userErr.Code)
+	} else {
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		os.Exit(1)
+	}
+}
 
 type Command struct {
 	Description string
@@ -71,6 +93,22 @@ var commands = map[string]Command{
 			}
 		},
 	},
+	"version": {
+		Description: "Show version information",
+		Run: func(args []string) {
+			fmt.Printf("commitgen %s\n", version)
+			if len(args) > 0 && args[0] == "--verbose" {
+				fmt.Printf("Commit: %s\n", commit)
+				fmt.Printf("Built: %s\n", date)
+			}
+		},
+	},
+	"init": {
+		Description: "Create a configuration file interactively",
+		Run: func(args []string) {
+			initConfig(args)
+		},
+	},
 	"uninstall-shell": {
 		Description: "Remove shell snippet and guarded .zshrc block",
 		Run: func(args []string) {
@@ -123,8 +161,7 @@ func inGitRepo() bool {
 
 func suggest(args []string) {
 	if !inGitRepo() {
-		fmt.Fprintln(os.Stderr, "Error: not a git repository (no .git directory found)")
-		os.Exit(1)
+		handleError(errors.NoGitRepo())
 	}
 
 	plain := hasFlag(args, "--plain")
@@ -132,24 +169,28 @@ func suggest(args []string) {
 	useAI := hasFlag(args, "--ai")
 	useCache := hasFlag(args, "--cached")
 
+	logger.SetVerbose(verbose)
+
 	cfg := config.Load()
 	if cfg.AI.Enabled {
 		useAI = true
 	}
 
+	logger.Debug("Configuration loaded: AI enabled=%v, provider=%s", cfg.AI.Enabled, cfg.AI.Provider)
+
 	files, patch, err := diff.StagedChanges(cfg.PatchBytes)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error:", err)
-		os.Exit(1)
+		handleError(errors.GitError("reading staged changes", err))
 	}
 
 	if len(patch) == 0 {
 		if plain {
 			return
 		}
-		fmt.Fprintln(os.Stderr, "No staged files.")
-		os.Exit(1)
+		handleError(errors.NoStagedChanges())
 	}
+
+	logger.Debug("Found %d changed files, patch size: %d bytes", len(files), len(patch))
 
 	c := cache.New()
 
@@ -173,9 +214,7 @@ func suggest(args []string) {
 
 	cached, err := c.Get(files, patch)
 	if err == nil && !useCache {
-		if verbose {
-			fmt.Fprintln(os.Stderr, "Using cached message for these changes")
-		}
+		logger.Debug("Using cached message for these changes")
 		if plain {
 			fmt.Println(cached.Message)
 		} else {
@@ -187,9 +226,7 @@ func suggest(args []string) {
 	var msg string
 
 	if useAI && cfg.AI.APIKey != "" {
-		if verbose {
-			fmt.Fprintln(os.Stderr, "Using AI provider:", cfg.AI.Provider)
-		}
+		logger.Info("Using AI provider: %s", cfg.AI.Provider)
 
 		providerConfig := provider.Config{
 			Provider: cfg.AI.Provider,
@@ -200,25 +237,20 @@ func suggest(args []string) {
 
 		aiProvider, err := provider.GetProvider(providerConfig)
 		if err != nil {
-			if verbose {
-				fmt.Fprintln(os.Stderr, "AI provider error:", err)
-				fmt.Fprintln(os.Stderr, "Falling back to heuristics")
-			}
+			logger.Warn("AI provider initialization failed: %v", err)
+			logger.Info("Falling back to heuristic message generation")
 			msg = prompt.MakePrompt(files, patch)
 		} else {
 			ctx := context.Background()
+			logger.Debug("Sending request to AI provider...")
 			aiMsg, err := aiProvider.GenerateCommitMessage(ctx, files, patch)
 			if err != nil {
-				if verbose {
-					fmt.Fprintln(os.Stderr, "AI generation error:", err)
-					fmt.Fprintln(os.Stderr, "Falling back to heuristics")
-				}
+				logger.Warn("AI generation failed: %v", err)
+				logger.Info("Falling back to heuristic message generation")
 				msg = prompt.MakePrompt(files, patch)
 			} else {
 				msg = aiMsg
-				if verbose {
-					fmt.Fprintln(os.Stderr, "Generated using AI")
-				}
+				logger.Debug("Successfully generated commit message using AI")
 				c.Set(files, patch, msg, cfg.AI.Provider)
 			}
 		}
@@ -364,4 +396,97 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func initConfig(args []string) {
+	fmt.Println("🔧 CommitGen Configuration Setup")
+	fmt.Println("This will create a commitgen.yaml configuration file.")
+	fmt.Println()
+
+	global := hasFlag(args, "--global")
+	if !global {
+		fmt.Print("Create config file globally (~/.commitgen.yaml) or locally (./commitgen.yaml)? [global/local] (default: local): ")
+		var choice string
+		fmt.Scanln(&choice)
+		global = choice == "global" || choice == "g"
+	}
+
+	configPath := "./commitgen.yaml"
+	if global {
+		if homeDir, err := os.UserHomeDir(); err == nil {
+			configPath = filepath.Join(homeDir, ".commitgen.yaml")
+		}
+	}
+
+	// Check if config file already exists
+	if _, err := os.Stat(configPath); err == nil {
+		fmt.Printf("⚠️  Configuration file already exists at %s\n", configPath)
+		fmt.Print("Overwrite? [y/N]: ")
+		var confirm string
+		fmt.Scanln(&confirm)
+		if confirm != "y" && confirm != "Y" && confirm != "yes" {
+			fmt.Println("Configuration setup cancelled.")
+			return
+		}
+	}
+
+	fmt.Print("Enter your OpenAI API key (or press Enter to configure later): ")
+	var apiKey string
+	fmt.Scanln(&apiKey)
+
+	fmt.Print("Choose AI model [gpt-4o/gpt-4o-mini/gpt-3.5-turbo] (default: gpt-4o-mini): ")
+	var model string
+	fmt.Scanln(&model)
+	if model == "" {
+		model = "gpt-4o-mini"
+	}
+
+	fmt.Print("Enable AI by default? [y/N]: ")
+	var aiEnabledStr string
+	fmt.Scanln(&aiEnabledStr)
+	aiEnabled := aiEnabledStr == "y" || aiEnabledStr == "Y" || aiEnabledStr == "yes"
+
+	configContent := fmt.Sprintf(`# CommitGen Configuration
+# Generated by 'commitgen init'
+
+ai:
+  enabled: %t
+  provider: "openai"
+  model: "%s"
+  api_key: "%s"
+  base_url: ""
+
+performance:
+  patch_bytes: 4000
+  cache_ttl: "24h"
+  max_files: 10
+
+git:
+  auto_install_hook: false
+  commit_template: ""
+
+output:
+  verbose: false
+  plain: false
+  colors: true
+
+advanced:
+  conventions_file: ""
+  fallback_enabled: true
+  debug: false
+`, aiEnabled, model, apiKey)
+
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		fmt.Printf("❌ Failed to create config file: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("✅ Configuration file created at %s\n", configPath)
+	fmt.Println()
+	fmt.Println("Next steps:")
+	if apiKey == "" {
+		fmt.Println("1. Add your OpenAI API key to the config file or set OPENAI_API_KEY environment variable")
+	}
+	fmt.Println("2. Customize the configuration as needed")
+	fmt.Println("3. Run 'commitgen suggest' to test your setup")
 }

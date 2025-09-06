@@ -6,10 +6,13 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/joaquinalmora/commitgen/internal/errors"
 )
 
 //go:embed conventions.md
@@ -50,7 +53,11 @@ type openAIError struct {
 
 func NewOpenAIProvider(config Config) (Provider, error) {
 	if config.APIKey == "" {
-		return nil, fmt.Errorf("OpenAI API key is required")
+		return nil, errors.InvalidAPIKey("OpenAI")
+	}
+
+	if !strings.HasPrefix(config.APIKey, "sk-") {
+		return nil, errors.InvalidAPIKey("OpenAI")
 	}
 
 	baseURL := config.BaseURL
@@ -120,9 +127,31 @@ func (p *OpenAIProvider) GenerateCommitMessage(ctx context.Context, files []stri
 
 	resp, err := p.client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("API request failed: %w", err)
+		return "", errors.NetworkError(err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		switch resp.StatusCode {
+		case http.StatusUnauthorized:
+			return "", errors.InvalidAPIKey("OpenAI")
+		case http.StatusTooManyRequests:
+			return "", errors.UserError{
+				Message: "OpenAI API rate limit exceeded",
+				Help:    "Wait a moment and try again, or upgrade your OpenAI plan",
+				Code:    7,
+			}
+		case http.StatusInternalServerError, http.StatusBadGateway, http.StatusServiceUnavailable:
+			return "", errors.UserError{
+				Message: "OpenAI service temporarily unavailable",
+				Help:    "Try again in a few moments or use '--cached' for a previous message",
+				Code:    8,
+			}
+		default:
+			return "", fmt.Errorf("OpenAI API error (HTTP %d): %s", resp.StatusCode, string(body))
+		}
+	}
 
 	var openAIResp openAIResponse
 	if err := json.NewDecoder(resp.Body).Decode(&openAIResp); err != nil {
@@ -130,7 +159,7 @@ func (p *OpenAIProvider) GenerateCommitMessage(ctx context.Context, files []stri
 	}
 
 	if openAIResp.Error != nil {
-		return "", fmt.Errorf("OpenAI API error: %s", openAIResp.Error.Message)
+		return "", errors.AIProviderError("OpenAI", fmt.Errorf("%s", openAIResp.Error.Message))
 	}
 
 	if len(openAIResp.Choices) == 0 {

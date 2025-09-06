@@ -1,305 +1,311 @@
-# Setup Guide
+# Installation & Setup Guide
 
-Comprehensive installation and configuration guide for commitgen with AI integration.
+Complete installation and configuration guide for commitgen.
 
-## Quick Install
+## Quick Start
 
-### Option 1: Automated Setup (Recommended)
+### Option 1: Homebrew (Recommended)
 
 ```bash
-# Install commitgen
-go install github.com/joaquinalmora/commitgen/cmd/commitgen@latest
-
-# Run automated setup script
-curl -sSL https://raw.githubusercontent.com/joaquinalmora/commitgen/main/scripts/setup.sh | bash
+brew tap joaquinalmora/tap
+brew install commitgen
+commitgen init  # Interactive configuration
 ```
 
-The script handles:
-- Environment file creation
-- API key configuration prompts
-- Shell integration installation
-- AI connection testing
-
-### Option 2: Manual Installation
+### Option 2: Go Install
 
 ```bash
-# Clone and build
+go install github.com/joaquinalmora/commitgen/cmd/commitgen@latest
+commitgen init
+```
+
+### Option 3: From Source
+
+```bash
 git clone https://github.com/joaquinalmora/commitgen.git
 cd commitgen
-go build -o bin/commitgen ./cmd/commitgen
-
-# Add to PATH (optional)
-sudo cp bin/commitgen /usr/local/bin/
+make build
+make install  # Installs to /usr/local/bin
 ```
 
-## AI Provider Setup
+## Configuration
 
-### OpenAI Setup (Cloud AI)
+### Interactive Setup (Recommended)
 
-1. **Get API Key**: Visit [OpenAI API Keys](https://platform.openai.com/api-keys)
+```bash
+commitgen init
+```
 
-2. **Configure Environment**:
+This will guide you through:
+- Configuration file location (local vs global)
+- OpenAI API key setup
+- AI model selection
+- Default preferences
+
+### Manual Configuration
+
+#### Environment Variables (Quick Setup)
+
+Create a `.env` file:
+
+```bash
+# Copy the example file
+cp .env.example .env
+
+# Edit with your API key
+OPENAI_API_KEY=your-api-key-here
+COMMITGEN_MODEL=gpt-4o-mini
+COMMITGEN_AI_ENABLED=true
+```
+
+#### YAML Configuration (Advanced)
+
+Create `commitgen.yaml`:
+
+```yaml
+ai:
+  enabled: true
+  provider: "openai"
+  model: "gpt-4o-mini"
+  api_key: ""  # Use environment variable instead
+
+performance:
+  patch_bytes: 4000
+  cache_ttl: "24h"
+  max_files: 10
+
+output:
+  verbose: false
+  colors: true
+```
+
+## OpenAI API Setup
+
+1. Visit [OpenAI API Keys](https://platform.openai.com/api-keys)
+2. Create a new API key
+3. Add it to your configuration:
+   - Via `commitgen init`
+   - In `.env` file: `OPENAI_API_KEY=sk-...`
+   - In `commitgen.yaml`: `api_key: "sk-..."`
+
+## Git Integration
+
+### Basic Usage
+
+```bash
+git add .
+commitgen suggest          # Generate commit message
+commitgen suggest --ai     # Force AI generation
+commitgen suggest --verbose # Show detailed logs
+```
+
+### Git Hooks (Auto-suggestions)
+
+```bash
+commitgen install-hook     # Install prepare-commit-msg hook
+git commit                 # Will auto-suggest messages
+commitgen uninstall-hook   # Remove hook
+```
+
+## Shell Integration
+
+### Automatic Setup
+
+```bash
+commitgen install-shell
+```
+
+### Manual zsh Integration
+
+For zsh with oh-my-zsh and zsh-autosuggestions:
+
+1. **Ensure zsh-autosuggestions is enabled**:
    ```bash
-   # Copy environment template
-   cp .env.example ~/.env
-   
-   # Edit and add your API key
-   nano ~/.env
+   # In ~/.zshrc plugins list
+   plugins=(... zsh-autosuggestions)
    ```
 
-3. **Add to ~/.env**:
+2. **Configure autosuggestions strategy** (add before sourcing oh-my-zsh):
    ```bash
-   OPENAI_API_KEY=sk-your-actual-api-key-here
-   COMMITGEN_PROVIDER=openai
-   COMMITGEN_MODEL=gpt-4o-mini
+   ZSH_AUTOSUGGEST_USE_ASYNC=1
+   ZSH_AUTOSUGGEST_STRATEGY=(commitgen history)
    ```
 
-4. **Test Connection**:
+3. **Add commitgen function**:
+   ```bash
+   # Add to ~/.zshrc
+   commitgen() {
+     if [[ "$1" == "suggest" ]] && [[ -z "$2" ]]; then
+       command commitgen suggest --plain 2>/dev/null
+     else
+       command commitgen "$@"
+     fi
+   }
+   ```
+
+4. **Reload shell**:
    ```bash
    source ~/.zshrc
-   commitgen suggest --ai --verbose
    ```
 
-### Ollama Setup (Local AI)
-
-1. **Install Ollama**:
-   ```bash
-   # macOS
-   brew install ollama
-   
-   # Linux
-   curl -fsSL https://ollama.ai/install.sh | sh
-   ```
-
-2. **Start Ollama Service**:
-   ```bash
-   ollama serve
-   ```
-
-3. **Pull a Model**:
-   ```bash
-   # Recommended: lightweight and fast
-   ollama pull llama3.2:3b
-   
-   # Alternative: better for coding
-   ollama pull qwen2.5-coder:7b
-   ```
-
-4. **Configure Environment**:
-   ```bash
-   # Add to ~/.env
-   COMMITGEN_PROVIDER=ollama
-   COMMITGEN_MODEL=llama3.2:3b
-   OLLAMA_HOST=http://localhost:11434
-   ```
-
-## Integration Setup
-
-### Git Hooks (Auto-Cache)
-
-Enable background AI cache generation for instant commit messages:
+### Verification
 
 ```bash
-# Install hooks
-commitgen install-hook
-
-# Test the workflow
-echo "test" > test.txt
-git add test.txt    # ← Cache generation starts in background
-git commit          # ← Uses cached message instantly
-```
-
-**What gets installed:**
-- `prepare-commit-msg`: Uses cached messages during commit
-- `post-index-change`: Generates cache when files are staged
-
-### Shell Integration (Ghost Text)
-
-Enable AI suggestions as you type commit commands:
-
-```bash
-# Install shell integration
-commitgen install-shell
-
-# Reload shell
-source ~/.zshrc
-```
-
-**How it works:**
-- Type `git commit -m "` → AI suggestion appears as ghost text
-- Type `gc "` → Works with git aliases too
-- Press `→` or `Ctrl+F` to accept suggestion
-
-## Environment Configuration
-
-### Security Best Practices
-
-✅ **DO:**
-- Use `.env` files for API keys
-- Keep `.env` files local (never commit them)
-- Use the provided `.env.example` as a template
-
-❌ **DON'T:**
-- Put API keys directly in shell config files
-- Commit API keys to version control
-- Share API keys in screenshots or logs
-
-### Environment Variables
-
-```bash
-# AI Provider Configuration
-OPENAI_API_KEY=sk-your-key              # OpenAI API key
-COMMITGEN_PROVIDER=openai               # Provider: 'openai' or 'ollama'
-COMMITGEN_MODEL=gpt-4o-mini             # Model name
-OLLAMA_HOST=http://localhost:11434      # Ollama server URL
-
-# Performance Settings
-COMMITGEN_CACHE_TTL=24h                 # Cache lifetime
-COMMITGEN_MAX_FILES=10                  # Max files to analyze
-COMMITGEN_PATCH_BYTES=102400            # Max patch size (100KB)
-
-# Advanced Settings
-COMMITGEN_AI_FALLBACK=true              # Fallback to heuristics on AI failure
-COMMITGEN_VERBOSE=false                 # Enable verbose logging
+cd your-git-repo
+git add some-file.txt
+# Type 'git commit -m "' and press TAB
+# Should show AI-generated suggestion
 ```
 
 ## Troubleshooting
 
 ### Common Issues
 
-**Q: AI not working**
-```bash
-# Check system status
-commitgen doctor
+**"No API key" error:**
+- Run `commitgen init` to set up configuration
+- Check that `OPENAI_API_KEY` is set correctly
+- Verify API key is valid at OpenAI platform
 
-# Test AI with verbose output
-commitgen suggest --ai --verbose
+**"Not a git repository" error:**
+- Ensure you're in a git repository
+- Run `git init` if needed
+
+**"No staged changes" error:**
+- Stage files with `git add <files>`
+- Check `git status` to see staged changes
+
+**Shell integration not working:**
+- Run `commitgen doctor` for diagnostics
+- Ensure zsh-autosuggestions plugin is enabled
+- Check that commitgen is in PATH
+
+### Debug Mode
+
+```bash
+commitgen suggest --verbose  # Show detailed logs
+commitgen doctor             # System diagnostics
 ```
 
-**Q: Shell integration not working**
+### Getting Help
+
 ```bash
-# Reinstall shell integration
-commitgen uninstall-shell
-commitgen install-shell
+commitgen --help            # Show available commands
+commitgen suggest --help    # Command-specific help
+```
+   ```bash
+   echo 'OPENAI_API_KEY=sk-your-key-here' >> ~/.env
+   ```
+
+Optional model override:
+```bash
+echo 'COMMITGEN_MODEL=gpt-4o' >> ~/.env  # Default: gpt-4o-mini
+```
+
+## Integration Setup
+
+### Git Hooks
+```bash
+commitgen install-hook  # Enable auto-cache and commit integration
+```
+
+### Shell Integration
+
+Basic setup (recommended):
+```bash
+commitgen install-shell  # Automated setup
 source ~/.zshrc
 ```
 
-**Q: Git hooks not working**
-```bash
-# Check hook installation
-ls -la .git/hooks/prepare-commit-msg
-ls -la .git/hooks/post-index-change
+Manual setup for advanced users - see [DOCS/INLINE_SUGGESTIONS.md](DOCS/INLINE_SUGGESTIONS.md) for detailed instructions on oh-my-zsh + zsh-autosuggestions or plain zsh configurations.
 
-# Reinstall hooks
-commitgen uninstall-hook
-commitgen install-hook
+## Environment Configuration
+
+Core variables:
+
+```bash
+# Provider & Authentication
+OPENAI_API_KEY=sk-your-key
+COMMITGEN_PROVIDER=openai               # 'openai' or 'ollama'
+COMMITGEN_MODEL=gpt-4o-mini             # Model override
+
+# Performance
+COMMITGEN_CACHE_TTL=24h                 # Cache lifetime  
+COMMITGEN_MAX_FILES=10                  # Max files analyzed
+COMMITGEN_PATCH_BYTES=102400            # Max patch size
+
+# Advanced
+COMMITGEN_CONVENTIONS_FILE=~/custom.md  # Custom conventions
+COMMITGEN_AI_FALLBACK=true              # Fallback to heuristics
 ```
 
-**Q: Environment variables not loading**
+## Troubleshooting
+
+### Common Issues
+
+#### AI not working
 ```bash
-# Check if .env exists
-ls -la ~/.env
-
-# Check shell configuration
-tail -5 ~/.zshrc
-
-# Manually load environment
-source ~/.env
+commitgen doctor                    # Check system status
+commitgen suggest --ai --verbose    # Test with debug output
 ```
 
-### Advanced Configuration
-
-#### Custom API Endpoints
-
-For custom OpenAI-compatible endpoints:
-
+#### Shell integration not working  
 ```bash
+commitgen uninstall-shell && commitgen install-shell
+source ~/.zshrc
+```
+
+#### Git hooks not working
+```bash
+ls -la .git/hooks/prepare-commit-msg  # Check installation
+commitgen uninstall-hook && commitgen install-hook
+```
+
+#### Environment not loading
+```bash
+ls -la ~/.env                       # Check file exists  
+source ~/.env && env | grep COMMIT  # Test loading
+```
+
+## Advanced Configuration
+
+### Custom Conventions
+```bash
+# Export and customize commit standards
+cp internal/provider/conventions.md ~/.commitgen-conventions.md
+echo "COMMITGEN_CONVENTIONS_FILE=$HOME/.commitgen-conventions.md" >> ~/.env
+```
+
+### Multiple Repositories
+Each repo can have independent hook configuration:
+```bash
+cd /path/to/repo && commitgen install-hook
+```
+
+### Custom API Endpoints
+```bash
+OPENAI_BASE_URL=https://your-endpoint.com/v1
 OPENAI_API_KEY=your-key
-OPENAI_BASE_URL=https://your-custom-endpoint.com/v1
 ```
-
-#### Multiple Git Repositories
-
-Each repository can have its own hook configuration:
-
-```bash
-# Install hooks per repository
-cd /path/to/repo1
-commitgen install-hook
-
-cd /path/to/repo2  
-commitgen install-hook
-```
-
-#### Shell Compatibility
-
-Supported shells:
-- ✅ zsh (recommended)
-- ✅ zsh + oh-my-zsh
-- ✅ zsh + zsh-autosuggestions
-
-For other shells, use git hooks without shell integration.
 
 ## Verification
 
-### Test Your Setup
-
-1. **Test AI Connection**:
-   ```bash
-   commitgen suggest --ai --verbose
-   ```
-
-2. **Test Shell Integration**:
-   ```bash
-   # Type this and look for ghost text:
-   git commit -m "
-   ```
-
-3. **Test Git Hooks**:
-   ```bash
-   echo "test" > test.txt
-   git add test.txt
-   git commit  # Should show AI-generated message
-   ```
-
-4. **Check System Health**:
-   ```bash
-   commitgen doctor
-   ```
-
-### Expected Output
-
-When everything is working:
-
+Quick health check:
 ```bash
-$ commitgen doctor
-Git repo: ok
-commitgen binary on PATH: /usr/local/bin/commitgen
-prepare-commit-msg hook: .git/hooks/prepare-commit-msg
-zsh snippet installed: ~/.config/commitgen.zsh
-.zshrc contains commitgen guarded block
-staged files: 1
-zsh-autosuggestions: detected
+commitgen doctor  # Should show all green
 ```
 
-## Uninstallation
-
-To remove commitgen completely:
-
+Test workflow:
 ```bash
-# Remove shell integration
+echo "test" > test.txt && git add test.txt
+git commit -m "  # Look for ghost text suggestions
+```
+
+## Uninstall
+
+Complete removal:
+```bash
 commitgen uninstall-shell
-
-# Remove git hooks (per repository)
-commitgen uninstall-hook
-
-# Remove binary
+commitgen uninstall-hook  # Run in each repo
 sudo rm /usr/local/bin/commitgen
-
-# Remove environment file
-rm ~/.env
-
-# Remove configuration
-rm -rf ~/.config/commitgen.zsh
-rm -rf ~/.cache/commitgen
+rm ~/.env ~/.config/commitgen.zsh
 ```

@@ -28,12 +28,6 @@ func (e *ProviderError) Error() string {
 }
 
 func GetProvider(config Config) (Provider, error) {
-	switch config.Provider {
-	case "openai":
-		return NewOpenAIProvider(config)
-	case "ollama":
-		return NewOllamaProvider(config)
-	default:
-		return nil, fmt.Errorf("unknown provider: %s", config.Provider)
-	}
+	// Only support OpenAI provider
+	return NewOpenAIProvider(config)
 }
