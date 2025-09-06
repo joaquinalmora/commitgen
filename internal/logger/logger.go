@@ -59,11 +59,11 @@ func (l *Logger) log(level Level, msg string, args ...interface{}) {
 
 	timestamp := time.Now().Format("15:04:05")
 	prefix := fmt.Sprintf("[%s %s]", timestamp, level.String())
-	
+
 	if len(args) > 0 {
 		msg = fmt.Sprintf(msg, args...)
 	}
-	
+
 	l.logger.Printf("%s %s", prefix, msg)
 }
 

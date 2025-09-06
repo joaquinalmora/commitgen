@@ -16,7 +16,7 @@ func TestLogger(t *testing.T) {
 	logger.Error("error message")
 
 	output := buf.String()
-	
+
 	if !strings.Contains(output, "DEBUG") {
 		t.Error("Expected DEBUG log level in output")
 	}
@@ -29,7 +29,7 @@ func TestLogger(t *testing.T) {
 	if !strings.Contains(output, "ERROR") {
 		t.Error("Expected ERROR log level in output")
 	}
-	
+
 	if !strings.Contains(output, "debug message") {
 		t.Error("Expected debug message in output")
 	}
@@ -52,7 +52,7 @@ func TestLoggerLevel(t *testing.T) {
 	logger.Info("info message")
 
 	output := buf.String()
-	
+
 	if strings.Contains(output, "debug message") {
 		t.Error("DEBUG message should be filtered out with INFO level")
 	}
@@ -81,7 +81,7 @@ func TestSetVerbose(t *testing.T) {
 
 	SetVerbose(true)
 	Debug("test debug")
-	
+
 	output := buf.String()
 	if !strings.Contains(output, "test debug") {
 		t.Error("Expected debug message after SetVerbose(true)")
@@ -90,7 +90,7 @@ func TestSetVerbose(t *testing.T) {
 	buf.Reset()
 	SetVerbose(false)
 	Debug("test debug 2")
-	
+
 	output = buf.String()
 	if strings.Contains(output, "test debug 2") {
 		t.Error("Debug message should be filtered after SetVerbose(false)")
