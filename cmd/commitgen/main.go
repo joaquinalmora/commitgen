@@ -251,7 +251,7 @@ func suggest(args []string) {
 			} else {
 				msg = aiMsg
 				logger.Debug("Successfully generated commit message using AI")
-				c.Set(files, patch, msg, cfg.AI.Provider)
+				_ = c.Set(files, patch, msg, cfg.AI.Provider) // ignore cache errors
 			}
 		}
 	} else {
@@ -260,7 +260,7 @@ func suggest(args []string) {
 		}
 		msg = prompt.MakePrompt(files, patch)
 		if useAI {
-			c.Set(files, patch, msg, "heuristics")
+			_ = c.Set(files, patch, msg, "heuristics") // ignore cache errors
 		}
 	}
 
@@ -407,7 +407,7 @@ func initConfig(args []string) {
 	if !global {
 		fmt.Print("Create config file globally (~/.commitgen.yaml) or locally (./commitgen.yaml)? [global/local] (default: local): ")
 		var choice string
-		fmt.Scanln(&choice)
+		_, _ = fmt.Scanln(&choice) // ignore input errors
 		global = choice == "global" || choice == "g"
 	}
 
@@ -423,7 +423,7 @@ func initConfig(args []string) {
 		fmt.Printf("⚠️  Configuration file already exists at %s\n", configPath)
 		fmt.Print("Overwrite? [y/N]: ")
 		var confirm string
-		fmt.Scanln(&confirm)
+		_, _ = fmt.Scanln(&confirm) // ignore input errors
 		if confirm != "y" && confirm != "Y" && confirm != "yes" {
 			fmt.Println("Configuration setup cancelled.")
 			return
@@ -432,18 +432,18 @@ func initConfig(args []string) {
 
 	fmt.Print("Enter your OpenAI API key (or press Enter to configure later): ")
 	var apiKey string
-	fmt.Scanln(&apiKey)
+	_, _ = fmt.Scanln(&apiKey) // ignore input errors
 
 	fmt.Print("Choose AI model [gpt-4o/gpt-4o-mini/gpt-3.5-turbo] (default: gpt-4o-mini): ")
 	var model string
-	fmt.Scanln(&model)
+	_, _ = fmt.Scanln(&model) // ignore input errors
 	if model == "" {
 		model = "gpt-4o-mini"
 	}
 
 	fmt.Print("Enable AI by default? [y/N]: ")
 	var aiEnabledStr string
-	fmt.Scanln(&aiEnabledStr)
+	_, _ = fmt.Scanln(&aiEnabledStr) // ignore input errors
 	aiEnabled := aiEnabledStr == "y" || aiEnabledStr == "Y" || aiEnabledStr == "yes"
 
 	configContent := fmt.Sprintf(`# CommitGen Configuration

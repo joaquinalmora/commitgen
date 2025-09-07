@@ -24,7 +24,7 @@ type Cache struct {
 func New() *Cache {
 	homeDir, _ := os.UserHomeDir()
 	cacheDir := filepath.Join(homeDir, ".cache", "commitgen")
-	os.MkdirAll(cacheDir, 0755)
+	_ = os.MkdirAll(cacheDir, 0755) // ignore error, cache is optional
 	return &Cache{cacheDir: cacheDir}
 }
 

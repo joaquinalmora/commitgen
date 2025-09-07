@@ -46,10 +46,10 @@ func TestSuggestPlainIntegration(t *testing.T) {
 	}
 	cfg1 := exec.Command("git", "config", "user.email", "e2e@example.com")
 	cfg1.Dir = repo
-	cfg1.Run()
+	_ = cfg1.Run() // ignore error for test setup
 	cfg2 := exec.Command("git", "config", "user.name", "e2e")
 	cfg2.Dir = repo
-	cfg2.Run()
+	_ = cfg2.Run() // ignore error for test setup
 
 	fpath := filepath.Join(repo, "demo.txt")
 	if err := os.WriteFile(fpath, []byte("hello e2e"), 0o644); err != nil {
