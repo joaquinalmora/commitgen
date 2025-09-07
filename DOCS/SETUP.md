@@ -37,6 +37,7 @@ commitgen init
 ```
 
 This will guide you through:
+
 - Configuration file location (local vs global)
 - OpenAI API key setup
 - AI model selection
@@ -120,18 +121,21 @@ commitgen install-shell
 For zsh with oh-my-zsh and zsh-autosuggestions:
 
 1. **Ensure zsh-autosuggestions is enabled**:
+
    ```bash
    # In ~/.zshrc plugins list
    plugins=(... zsh-autosuggestions)
    ```
 
 2. **Configure autosuggestions strategy** (add before sourcing oh-my-zsh):
+
    ```bash
    ZSH_AUTOSUGGEST_USE_ASYNC=1
    ZSH_AUTOSUGGEST_STRATEGY=(commitgen history)
    ```
 
 3. **Add commitgen function**:
+
    ```bash
    # Add to ~/.zshrc
    commitgen() {
@@ -144,6 +148,7 @@ For zsh with oh-my-zsh and zsh-autosuggestions:
    ```
 
 4. **Reload shell**:
+
    ```bash
    source ~/.zshrc
    ```
@@ -159,22 +164,26 @@ git add some-file.txt
 
 ## Troubleshooting
 
-### Common Issues
+### Common Issues (General)
 
 **"No API key" error:**
+
 - Run `commitgen init` to set up configuration
 - Check that `OPENAI_API_KEY` is set correctly
 - Verify API key is valid at OpenAI platform
 
 **"Not a git repository" error:**
+
 - Ensure you're in a git repository
 - Run `git init` if needed
 
 **"No staged changes" error:**
+
 - Stage files with `git add <files>`
 - Check `git status` to see staged changes
 
 **Shell integration not working:**
+
 - Run `commitgen doctor` for diagnostics
 - Ensure zsh-autosuggestions plugin is enabled
 - Check that commitgen is in PATH
@@ -192,11 +201,13 @@ commitgen doctor             # System diagnostics
 commitgen --help            # Show available commands
 commitgen suggest --help    # Command-specific help
 ```
+
    ```bash
    echo 'OPENAI_API_KEY=sk-your-key-here' >> ~/.env
    ```
 
 Optional model override:
+
 ```bash
 echo 'COMMITGEN_MODEL=gpt-4o' >> ~/.env  # Default: gpt-4o-mini
 ```
@@ -204,13 +215,15 @@ echo 'COMMITGEN_MODEL=gpt-4o' >> ~/.env  # Default: gpt-4o-mini
 ## Integration Setup
 
 ### Git Hooks
+
 ```bash
 commitgen install-hook  # Enable auto-cache and commit integration
 ```
 
-### Shell Integration
+### Shell Integration (Manual & Advanced)
 
 Basic setup (recommended):
+
 ```bash
 commitgen install-shell  # Automated setup
 source ~/.zshrc
@@ -238,29 +251,33 @@ COMMITGEN_CONVENTIONS_FILE=~/custom.md  # Custom conventions
 COMMITGEN_AI_FALLBACK=true              # Fallback to heuristics
 ```
 
-## Troubleshooting
+## Additional Troubleshooting
 
-### Common Issues
+### Common Issues (Advanced)
 
 #### AI not working
+
 ```bash
 commitgen doctor                    # Check system status
 commitgen suggest --ai --verbose    # Test with debug output
 ```
 
 #### Shell integration not working  
+
 ```bash
 commitgen uninstall-shell && commitgen install-shell
 source ~/.zshrc
 ```
 
 #### Git hooks not working
+
 ```bash
 ls -la .git/hooks/prepare-commit-msg  # Check installation
 commitgen uninstall-hook && commitgen install-hook
 ```
 
 #### Environment not loading
+
 ```bash
 ls -la ~/.env                       # Check file exists  
 source ~/.env && env | grep COMMIT  # Test loading
@@ -269,6 +286,7 @@ source ~/.env && env | grep COMMIT  # Test loading
 ## Advanced Configuration
 
 ### Custom Conventions
+
 ```bash
 # Export and customize commit standards
 cp internal/provider/conventions.md ~/.commitgen-conventions.md
@@ -276,25 +294,30 @@ echo "COMMITGEN_CONVENTIONS_FILE=$HOME/.commitgen-conventions.md" >> ~/.env
 ```
 
 ### Multiple Repositories
+
 Each repo can have independent hook configuration:
+
 ```bash
 cd /path/to/repo && commitgen install-hook
 ```
 
 ### Custom API Endpoints
+
 ```bash
 OPENAI_BASE_URL=https://your-endpoint.com/v1
 OPENAI_API_KEY=your-key
 ```
 
-## Verification
+## Health Check & Verification
 
 Quick health check:
+
 ```bash
 commitgen doctor  # Should show all green
 ```
 
 Test workflow:
+
 ```bash
 echo "test" > test.txt && git add test.txt
 git commit -m "  # Look for ghost text suggestions
@@ -303,6 +326,7 @@ git commit -m "  # Look for ghost text suggestions
 ## Uninstall
 
 Complete removal:
+
 ```bash
 commitgen uninstall-shell
 commitgen uninstall-hook  # Run in each repo

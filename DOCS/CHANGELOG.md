@@ -53,3 +53,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Smart fallback chain: AI → Cache → Heuristics
 - One-command setup experience
 - Zero-config defaults with customization options
+

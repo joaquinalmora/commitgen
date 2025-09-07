@@ -27,6 +27,7 @@ CLI → Config → Provider → AI API → Response
 ## Provider System
 
 ### Interface
+
 ```go
 type Provider interface {
     GenerateCommitMessage(ctx context.Context, files []string, patch string) (string, error)
@@ -34,6 +35,7 @@ type Provider interface {
 ```
 
 ### Adding New Providers
+
 1. Implement `Provider` interface
 2. Add to factory in `provider.go`
 3. Add configuration options
@@ -47,6 +49,7 @@ type Provider interface {
 **Invalidation**: SHA256 hash-based change detection  
 
 ### Workflow
+
 1. `git add` → `post-index-change` hook → background cache generation
 2. `git commit` → `prepare-commit-msg` hook → instant cache retrieval  
 3. Cache miss → fallback to real-time AI generation
@@ -61,6 +64,7 @@ type Provider interface {
 ## Development
 
 ### Testing
+
 ```bash
 go test ./...                              # Unit tests
 OPENAI_API_KEY=sk-xxx go test ./e2e/...    # Integration tests  
@@ -68,6 +72,7 @@ commitgen doctor                           # System validation
 ```
 
 ### Debugging
+
 ```bash
 commitgen suggest --verbose    # Debug AI generation
 commitgen cache --debug        # Debug cache system
@@ -75,6 +80,7 @@ ls -la .git/hooks/             # Check hook installation
 ```
 
 ### Code Style
+
 - Follow Go conventions (`gofmt`, `golint`)
 - Add tests for new functionality
 - Update docs for API changes
