@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        go-version: [1.23, 1.25]
+        go-version: [1.21, 1.23]
     steps:
       - uses: actions/checkout@v4
       - name: Setup Go
@@ -36,7 +36,7 @@ jobs:
         run: go test -v -race -coverprofile=coverage.out ./...
       
       - name: Upload coverage to Codecov
-        if: github.event_name == 'push' && matrix.os == 'ubuntu-latest' && matrix.go-version == '1.25'
+        if: github.event_name == 'push' && matrix.os == 'ubuntu-latest' && matrix.go-version == '1.23'
         uses: codecov/codecov-action@v3
         with:
           file: ./coverage.out
@@ -50,7 +50,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.25'
+          go-version: '1.23'
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v4
         with:
@@ -66,7 +66,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.25'
+          go-version: '1.23'
       - name: Run macOS smoke
         run: go test ./...
 
@@ -79,6 +79,6 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.25'
+          go-version: '1.23'
       - name: Run e2e test
         run: go test ./e2e -run TestSuggestPlainIntegration -v
