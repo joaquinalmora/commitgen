@@ -10,7 +10,7 @@ import (
 
 func TestInstallUninstallShell(t *testing.T) {
 	tmp := t.TempDir()
-	
+
 	// Set appropriate home directory environment variable for platform
 	var homeEnv string
 	var oldHome string
@@ -21,7 +21,7 @@ func TestInstallUninstallShell(t *testing.T) {
 		homeEnv = "HOME"
 		oldHome = os.Getenv("HOME")
 	}
-	
+
 	if err := os.Setenv(homeEnv, tmp); err != nil {
 		t.Fatalf("setenv %s: %v", homeEnv, err)
 	}
