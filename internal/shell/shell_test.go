@@ -3,17 +3,29 @@ package shell
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
 
 func TestInstallUninstallShell(t *testing.T) {
 	tmp := t.TempDir()
-	oldHome := os.Getenv("HOME")
-	if err := os.Setenv("HOME", tmp); err != nil {
-		t.Fatalf("setenv HOME: %v", err)
+	
+	// Set appropriate home directory environment variable for platform
+	var homeEnv string
+	var oldHome string
+	if runtime.GOOS == "windows" {
+		homeEnv = "USERPROFILE"
+		oldHome = os.Getenv("USERPROFILE")
+	} else {
+		homeEnv = "HOME"
+		oldHome = os.Getenv("HOME")
 	}
-	defer os.Setenv("HOME", oldHome)
+	
+	if err := os.Setenv(homeEnv, tmp); err != nil {
+		t.Fatalf("setenv %s: %v", homeEnv, err)
+	}
+	defer os.Setenv(homeEnv, oldHome)
 
 	cfgPath := filepath.Join(tmp, ".config", "commitgen.zsh")
 	zshrcPath := filepath.Join(tmp, ".zshrc")

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -29,6 +30,9 @@ func TestSuggestPlainIntegration(t *testing.T) {
 	}
 
 	binPath := filepath.Join(tmp, "commitgen")
+	if runtime.GOOS == "windows" {
+		binPath += ".exe"
+	}
 	build := exec.Command("go", "build", "-o", binPath, "./cmd/commitgen")
 	build.Dir = repoRoot
 	if out, err := build.CombinedOutput(); err != nil {
