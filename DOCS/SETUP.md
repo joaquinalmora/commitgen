@@ -217,7 +217,7 @@ commitgen install-shell  # Automated setup
 source ~/.zshrc
 ```
 
-Manual setup for advanced users - see [DOCS/INLINE_SUGGESTIONS.md](DOCS/INLINE_SUGGESTIONS.md) for detailed instructions on oh-my-zsh + zsh-autosuggestions or plain zsh configurations.
+For manual setup or advanced shell configurations, see the Shell Integration section above for detailed instructions.
 
 ## Environment Configuration
 
