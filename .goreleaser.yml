@@ -1,0 +1,69 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+
+builds:
+  - main: ./cmd/commitgen
+    id: "commitgen"
+    binary: "commitgen"
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows 
+      - darwin
+    goarch:
+      - "386"
+      - amd64
+      - arm64
+    ignore:
+      - goos: darwin
+        goarch: "386"
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+    - goos: windows
+      format: zip
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+
+brews:
+  - name: commitgen
+    repository:
+      owner: joaquinalmora
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: "https://github.com/joaquinalmora/commitgen"
+    description: "Intelligent Git commit message generator powered by AI"
+    license: "MIT"
+    dependencies:
+      - name: git
+    test: |
+      system "#{bin}/commitgen version"
+    install: |
+      bin.install "commitgen"

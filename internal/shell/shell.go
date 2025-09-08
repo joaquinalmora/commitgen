@@ -13,7 +13,6 @@ const (
 	guardEnd       = "# <<< commitgen <<<"
 )
 
-// writes the commitgen zsh snippet and a guarded source block to ~/.zshrc
 func InstallShell() error {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -26,7 +25,6 @@ func InstallShell() error {
 		return err
 	}
 
-	// plugin-first snippet (zsh); written to ~/.config/commitgen.zsh
 	snippet := pluginFirstSnippet()
 
 	if err := os.WriteFile(cfgPath, []byte(snippet), 0o644); err != nil {
@@ -37,7 +35,6 @@ func InstallShell() error {
 	zshrcBytes, _ := os.ReadFile(zshrcPath)
 	zshrc := string(zshrcBytes)
 
-	// if already installed, do nothing
 	if containsGuard(zshrc) {
 		return nil
 	}
@@ -57,7 +54,6 @@ func InstallShell() error {
 	return nil
 }
 
-// UninstallShell removes the guarded block from ~/.zshrc and deletes the snippet file.
 func UninstallShell() error {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -69,7 +65,6 @@ func UninstallShell() error {
 
 	zshrcBytes, err := os.ReadFile(zshrcPath)
 	if err != nil {
-		// if .zshrc doesn't exist, still attempt to remove snippet
 		_ = os.Remove(cfgPath)
 		return nil
 	}
@@ -82,7 +77,6 @@ func UninstallShell() error {
 		}
 	}
 
-	// remove snippet file
 	if err := os.Remove(cfgPath); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
@@ -98,7 +92,6 @@ func filepathHas(s, sub string) bool {
 	return len(s) > 0 && (stringIndex(s, sub) >= 0)
 }
 
-// lightweight string index to avoid extra imports
 func stringIndex(s, sub string) int {
 	for i := 0; i+len(sub) <= len(s); i++ {
 		if s[i:i+len(sub)] == sub {
@@ -108,7 +101,6 @@ func stringIndex(s, sub string) int {
 	return -1
 }
 
-// removeGuardedBlock removes the first guarded block and returns the new content + whether it changed.
 func removeGuardedBlock(s string) (string, bool) {
 	start := stringIndex(s, guardStart)
 	if start < 0 {
@@ -119,7 +111,6 @@ func removeGuardedBlock(s string) (string, bool) {
 		return s, false
 	}
 	end += start + len(guardEnd)
-	// remove possible surrounding newlines
 	new := s[:start]
 	if end < len(s) {
 		new += s[end:]
@@ -131,37 +122,46 @@ func pluginFirstSnippet() string {
 	return `# commitgen zsh snippet (plugin-first)
 # plugin strategy for zsh-autosuggestions
 _cg_autosuggest_available() {
-  # detect autosuggestions plugin
+  # detect autosuggestions plugin more thoroughly
   if [[ -n ${ZSH_AUTOSUGGEST_DIR-} ]]; then
     return 0
   fi
   if [[ -f ${ZSH:-$HOME/.oh-my-zsh}/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
     return 0
   fi
+  # Check if autosuggestions functions exist
+  if [[ $(type -w _zsh_autosuggest_strategy_history 2>/dev/null) == *function* ]]; then
+    return 0
+  fi
   return 1
 }
 
 if _cg_autosuggest_available; then
+  # Use zsh-autosuggestions strategy (preferred)
   _zsh_autosuggest_strategy_commitgen() {
-    # only run for git commit -m "..." buffers
-    [[ $BUFFER == git\ commit* && $BUFFER == *-m\ "* ]] || return 1
-    commitgen suggest --plain 2>/dev/null
+    # only run for exact patterns: git commit -m " or gc "
+    [[ $BUFFER == "git commit -m \""* ]] || [[ $BUFFER == "gc \""* ]] || return 1
+    local suggestion
+    suggestion=$(commitgen suggest --ai --plain 2>/dev/null)
+    [[ -n "$suggestion" ]] && echo "${suggestion}\""
   }
-  # ensure strategy order: commitgen first, then history
+  # ensure strategy order: commitgen first, then history (avoid duplicates)
   if [[ -n "${ZSH_AUTOSUGGEST_STRATEGY-}" ]]; then
+    # Remove any existing 'commitgen' entries and prepend it
+    ZSH_AUTOSUGGEST_STRATEGY=("${(@)ZSH_AUTOSUGGEST_STRATEGY:#commitgen}")
     export ZSH_AUTOSUGGEST_STRATEGY=(commitgen ${ZSH_AUTOSUGGEST_STRATEGY[@]})
   else
     export ZSH_AUTOSUGGEST_STRATEGY=(commitgen history)
   fi
 else
-  # native POSTDISPLAY preview fallback
+  # native fallback only when autosuggestions not available
   _cg_update_preview() {
-    [[ $BUFFER == git\ commit* && $BUFFER == *-m\ "* ]] || return 1
+    [[ $BUFFER == "git commit -m \""* ]] || [[ $BUFFER == "gc \""* ]] || return 1
     # extract inside-quotes content
-    local inside=${BUFFER#*"}
-    inside=${inside%%"*}
+    local inside=${BUFFER#*\"}
+    inside=${inside%%\"*}
     local sug
-    sug=$(commitgen suggest --plain 2>/dev/null || true)
+    sug=$(commitgen suggest --ai --plain 2>/dev/null || true)
     [[ -z $sug ]] && return 1
     if [[ $inside == "$sug" ]]; then
       return 1
@@ -169,11 +169,10 @@ else
     zle -M "$sug"
   }
   function cg-accept-preview() {
-    # insert suggestion into the quoted message
-    local before=${BUFFER%%\"*}\"  # up to first quote
-    local after=
-    # replace or append
-    BUFFER=${BUFFER%%\"*}\"$(commitgen suggest --plain 2>/dev/null)\"${BUFFER#*\"}
+    # insert suggestion into the quoted message with closing quote
+    local suggestion
+    suggestion=$(commitgen suggest --ai --plain 2>/dev/null)
+    [[ -n "$suggestion" ]] && BUFFER=${BUFFER%%\"*}\"${suggestion}\"
     zle reset-prompt
   }
   zle -N cg-accept-preview

@@ -1,2 +1,52 @@
+# Build artifacts
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test coverage
+coverage.out
+coverage.html
+
+# Temporary test files
+test.txt
+test-*.txt
+*_test.txt
+fresh_test.*
+
+# Go workspace files
+go.work
+go.work.sum
+
+# Environment files
+.env
+.env.local
+
+# IDE and editor files
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Deprecated documentation (cleanup remnants)
 INLINE_SUGGESTIONS.md
 ROADMAP.md
+AI_IMPLEMENTATION.md
+AI-*
+company-conventions.md

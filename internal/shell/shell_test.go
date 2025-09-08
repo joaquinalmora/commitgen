@@ -3,23 +3,33 @@ package shell
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
 
 func TestInstallUninstallShell(t *testing.T) {
-	// use isolated HOME dir
 	tmp := t.TempDir()
-	oldHome := os.Getenv("HOME")
-	if err := os.Setenv("HOME", tmp); err != nil {
-		t.Fatalf("setenv HOME: %v", err)
+
+	// Set appropriate home directory environment variable for platform
+	var homeEnv string
+	var oldHome string
+	if runtime.GOOS == "windows" {
+		homeEnv = "USERPROFILE"
+		oldHome = os.Getenv("USERPROFILE")
+	} else {
+		homeEnv = "HOME"
+		oldHome = os.Getenv("HOME")
 	}
-	defer os.Setenv("HOME", oldHome)
+
+	if err := os.Setenv(homeEnv, tmp); err != nil {
+		t.Fatalf("setenv %s: %v", homeEnv, err)
+	}
+	defer os.Setenv(homeEnv, oldHome)
 
 	cfgPath := filepath.Join(tmp, ".config", "commitgen.zsh")
 	zshrcPath := filepath.Join(tmp, ".zshrc")
 
-	// Install should create snippet and guarded block
 	if err := InstallShell(); err != nil {
 		t.Fatalf("InstallShell failed: %v", err)
 	}
@@ -34,12 +44,10 @@ func TestInstallUninstallShell(t *testing.T) {
 		t.Fatalf("guarded block not found in .zshrc")
 	}
 
-	// Idempotent install
 	if err := InstallShell(); err != nil {
 		t.Fatalf("second InstallShell failed: %v", err)
 	}
 
-	// Uninstall should remove both snippet and guarded block
 	if err := UninstallShell(); err != nil {
 		t.Fatalf("UninstallShell failed: %v", err)
 	}
@@ -48,7 +56,6 @@ func TestInstallUninstallShell(t *testing.T) {
 	}
 	zb2, err := os.ReadFile(zshrcPath)
 	if err != nil {
-		// .zshrc may not exist after uninstall; treat that as ok
 		if !os.IsNotExist(err) {
 			t.Fatalf("reading .zshrc after uninstall: %v", err)
 		}
@@ -58,7 +65,6 @@ func TestInstallUninstallShell(t *testing.T) {
 		}
 	}
 
-	// Uninstall when nothing exists should not error
 	if err := UninstallShell(); err != nil {
 		t.Fatalf("UninstallShell on clean state failed: %v", err)
 	}

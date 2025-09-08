@@ -6,28 +6,29 @@ import (
 	"strings"
 )
 
-// MakePrompt builds a short subject using simple heuristics.
 func MakePrompt(files []string, patch string) string {
 	n := 2
 
 	if len(files) == 0 {
-		return "No staged files"
+		return "chore: add missing files"
 	}
 
 	if isTestsOnly(files) {
-		return "Update tests"
+		return analyzeTestChanges(patch)
 	}
 	if isDocsOnly(files) {
-		return "Update documentation"
+		return analyzeDocChanges(patch)
 	}
 
 	if isConfigOnly(files) {
-		return "Update configuration"
+		return analyzeConfigChanges(patch)
 	}
 
 	if isRenameOnly(patch) {
-		return "Rename files"
+		return "refactor: rename files for clarity"
 	}
+
+	commitType := analyzeCommitType(patch)
 
 	if len(files) < n {
 		n = len(files)
@@ -38,10 +39,113 @@ func MakePrompt(files []string, patch string) string {
 	base := strings.Join(head, ", ")
 
 	if rest > 0 {
-		return "Update " + base + fmt.Sprintf(" (+%d more)", rest)
+		return fmt.Sprintf("%s: update %s and %d more files", commitType, base, rest)
 	}
-	return "Update " + base
+	return fmt.Sprintf("%s: update %s", commitType, base)
+}
 
+func analyzeCommitType(patch string) string {
+	lowerPatch := strings.ToLower(patch)
+
+	if strings.Contains(lowerPatch, "fix") ||
+		strings.Contains(lowerPatch, "bug") ||
+		strings.Contains(lowerPatch, "error") ||
+		strings.Contains(lowerPatch, "issue") {
+		return "fix"
+	}
+
+	if strings.Contains(lowerPatch, "performance") ||
+		strings.Contains(lowerPatch, "optimize") ||
+		strings.Contains(lowerPatch, "speed") ||
+		strings.Contains(lowerPatch, "memory") {
+		return "perf"
+	}
+
+	if strings.Contains(lowerPatch, "security") ||
+		strings.Contains(lowerPatch, "auth") ||
+		strings.Contains(lowerPatch, "permission") {
+		return "security"
+	}
+
+	if strings.Contains(lowerPatch, "refactor") ||
+		strings.Contains(lowerPatch, "cleanup") ||
+		strings.Contains(lowerPatch, "restructure") {
+		return "refactor"
+	}
+
+	if strings.Contains(lowerPatch, "style") ||
+		strings.Contains(lowerPatch, "format") ||
+		strings.Contains(lowerPatch, "lint") {
+		return "style"
+	}
+
+	addedLines := strings.Count(patch, "\n+")
+	removedLines := strings.Count(patch, "\n-")
+
+	if addedLines > removedLines*2 {
+		return "feat"
+	}
+
+	return "chore"
+}
+
+func analyzeTestChanges(patch string) string {
+	lowerPatch := strings.ToLower(patch)
+
+	if strings.Contains(lowerPatch, "fix") {
+		return "test: fix failing tests"
+	}
+
+	addedLines := strings.Count(patch, "\n+")
+	removedLines := strings.Count(patch, "\n-")
+
+	if addedLines > removedLines {
+		return "test: add test coverage"
+	}
+
+	return "test: update test cases"
+}
+
+func analyzeDocChanges(patch string) string {
+	lowerPatch := strings.ToLower(patch)
+
+	if strings.Contains(lowerPatch, "readme") {
+		return "docs: update README"
+	}
+
+	if strings.Contains(lowerPatch, "api") {
+		return "docs: update API documentation"
+	}
+
+	if strings.Contains(lowerPatch, "fix") || strings.Contains(lowerPatch, "typo") {
+		return "docs: fix documentation errors"
+	}
+
+	return "docs: update documentation"
+}
+
+func analyzeConfigChanges(patch string) string {
+	lowerPatch := strings.ToLower(patch)
+
+	if strings.Contains(lowerPatch, "dependency") ||
+		strings.Contains(lowerPatch, "package") ||
+		strings.Contains(lowerPatch, "version") {
+		return "chore: update dependencies"
+	}
+
+	if strings.Contains(lowerPatch, "ci") ||
+		strings.Contains(lowerPatch, "workflow") ||
+		strings.Contains(lowerPatch, "pipeline") {
+		return "ci: update CI configuration"
+	}
+
+	if strings.Contains(lowerPatch, "build") ||
+		strings.Contains(lowerPatch, "webpack") ||
+		strings.Contains(lowerPatch, "gulp") {
+		return "build: update build configuration"
+	}
+
+	return "chore: update configuration"
 }
 
 func matchesAnySuffix(file string, suffixes []string) bool {

@@ -1,0 +1,33 @@
+# CommitGen Configuration File
+# Save this as 'commitgen.yaml' in your project root or home directory
+
+# AI Provider Configuration
+ai:
+  enabled: false                    # Enable AI by default
+  provider: "openai"               # AI provider (currently only "openai")
+  model: "gpt-4o"                  # Model to use
+  api_key: ""                      # API key (can also use OPENAI_API_KEY env var)
+  base_url: ""                     # Optional: custom API base URL
+
+# Performance Settings
+performance:
+  patch_bytes: 4000                # Maximum patch size to send to AI (bytes)
+  cache_ttl: "24h"                 # Cache time-to-live
+  max_files: 10                    # Maximum number of files to include in summary
+
+# Git Integration
+git:
+  auto_install_hook: false         # Automatically install git hooks on first run
+  commit_template: ""              # Custom commit message template file
+
+# Output Settings
+output:
+  verbose: false                   # Enable verbose output by default
+  plain: false                     # Use plain output by default
+  colors: true                     # Enable colored output
+
+# Advanced Settings
+advanced:
+  conventions_file: ""             # Path to custom conventions file
+  fallback_enabled: true          # Enable heuristic fallback when AI fails
+  debug: false                     # Enable debug logging
