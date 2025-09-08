@@ -30,7 +30,7 @@ commitgen init
 
 # Basic usage
 git add .
-commitgen suggest
+git commit -m "auto-suggested message"
 ```
 
 ## 📖 Key Documents
@@ -58,7 +58,3 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for:
 - Code style guidelines
 - Testing requirements
 - Pull request process
-
-## 📋 Project Status
-
-See [TODO_DEPLOYMENT.md](TODO_DEPLOYMENT.md) for current development status and deployment progress.

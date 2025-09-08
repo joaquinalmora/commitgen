@@ -185,7 +185,6 @@ When reporting bugs, please include:
 - Check existing issues first
 - Describe the use case and motivation
 - Consider implementation impact
-- Be open to discussion and alternatives
 
 ## 🔒 Security
 
@@ -196,21 +195,3 @@ When reporting bugs, please include:
 ## 📄 License
 
 By contributing to commitgen, you agree that your contributions will be licensed under the MIT License.
-
-## 🤝 Community
-
-- Be respectful and inclusive
-- Help others in discussions
-- Share knowledge and best practices
-- Follow the project's code of conduct
-
-## 📞 Getting Help
-
-- **Documentation**: Check README.md and DOCS/
-- **Issues**: Search existing GitHub issues
-- **Discussions**: Use GitHub Discussions for questions
-- **Real-time**: Check if there's a community chat
-
----
-
-Thank you for contributing to commitgen! 🎉
