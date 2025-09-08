@@ -27,9 +27,10 @@ cd commitgen && make build && make install
 # Interactive configuration (recommended)
 commitgen init
 
-# Or quick setup with environment variables
-export OPENAI_API_KEY="sk-your-api-key-here"
-export COMMITGEN_MODEL="gpt-4o-mini"
+# Add your OpenAI API key when prompted
+# Then install git hooks and shell integration
+commitgen install-hook
+commitgen install-shell
 ```
 
 ### Basic Usage
@@ -41,11 +42,8 @@ git add .
 # Generate AI-powered commit message
 commitgen suggest --ai
 
-# Install git hooks for automatic suggestions
-commitgen install-hook
-
-# Install shell integration for ghost text
-commitgen install-shell
+# Or just commit and get auto-suggestions
+git commit -m "  # AI suggestions appear here
 ```
 
 ## ✨ Features

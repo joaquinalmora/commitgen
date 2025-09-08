@@ -1,5 +1,5 @@
 #!/bin/bash
-# commitgen setup script - makes AI setup simple for users
+# commitgen automated setup script
 
 set -e
 
@@ -7,43 +7,71 @@ echo "🚀 Setting up commitgen with AI..."
 
 # Check if commitgen is installed
 if ! command -v commitgen &> /dev/null; then
-    echo "❌ commitgen not found. Please install first:"
-    echo "   brew install joaquinalmora/tap/commitgen"
-    exit 1
+    echo "❌ commitgen not found. Installing via go install..."
+    if ! command -v go &> /dev/null; then
+        echo "❌ Go not found. Please install Go first or use Homebrew:"
+        echo "   brew tap joaquinalmora/tap && brew install commitgen"
+        exit 1
+    fi
+    go install github.com/joaquinalmora/commitgen/cmd/commitgen@latest
+    echo "✅ commitgen installed"
 fi
 
-# Copy environment template
-if [ ! -f ~/.env ]; then
-    echo "📝 Creating environment template..."
-    cp .env.example ~/.env
-    echo "✅ Created ~/.env file"
+# Ask user preference for configuration method
+echo ""
+echo "Choose configuration method:"
+echo "1. Interactive setup (recommended) - creates commitgen.yaml"
+echo "2. Environment variables - creates .env file"
+read -p "Enter choice [1-2] (default: 1): " config_choice
+
+if [[ "$config_choice" == "2" ]]; then
+    # Environment variables setup
+    echo "📝 Setting up environment variables..."
+    commitgen env-example
+    if [[ -f .env.example ]]; then
+        cp .env.example ~/.env
+        echo "✅ Created ~/.env file"
+        echo ""
+        echo "🔑 NEXT STEP: Add your OpenAI API key"
+        echo "   1. Get API key: https://platform.openai.com/api-keys"
+        echo "   2. Edit: nano ~/.env"
+        echo "   3. Replace: your-openai-api-key-here"
+        echo ""
+        read -p "Press Enter when you've added your API key..."
+    fi
 else
-    echo "📝 ~/.env already exists"
+    # Interactive setup (default)
+    echo "📝 Starting interactive configuration..."
+    commitgen init
 fi
 
-# Check for API key
-if grep -q "your-openai-api-key-here" ~/.env 2>/dev/null; then
-    echo ""
-    echo "🔑 NEXT STEP: Add your OpenAI API key"
-    echo "   1. Get API key: https://platform.openai.com/api-keys"
-    echo "   2. Edit: nano ~/.env"
-    echo "   3. Replace: your-openai-api-key-here"
-    echo ""
-    read -p "Press Enter when you've added your API key..."
+# Install integrations
+echo "🔧 Installing git hooks..."
+if git rev-parse --git-dir >/dev/null 2>&1; then
+    commitgen install-hook
+    echo "✅ Git hooks installed"
+else
+    echo "⚠️  Not in a git repository. Git hooks will be installed per-repo later."
 fi
 
-# Install shell integration
 echo "🔧 Installing shell integration..."
 commitgen install-shell
+echo "✅ Shell integration installed"
 
-# Test AI
-echo "🤖 Testing AI connection..."
-if commitgen suggest --ai >/dev/null 2>&1; then
-    echo "✅ AI is working!"
+# Test the setup
+echo "🤖 Testing configuration..."
+if commitgen doctor >/dev/null 2>&1; then
+    echo "✅ All checks passed!"
 else
-    echo "⚠️  AI test failed. Check your API key in ~/.env"
+    echo "⚠️  Some checks failed. Run 'commitgen doctor' for details."
 fi
 
 echo ""
-echo "🎉 Setup complete! Try typing: git commit -m \""
-echo "   AI suggestions will appear automatically!"
+echo "🎉 Setup complete!"
+echo ""
+echo "Next steps:"
+echo "1. Restart your terminal or run: source ~/.zshrc"
+echo "2. In a git repo, try: git add . && git commit -m \""
+echo "3. AI suggestions will appear automatically!"
+echo ""
+echo "Troubleshooting: run 'commitgen doctor' for diagnostics"

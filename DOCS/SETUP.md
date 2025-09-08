@@ -45,18 +45,17 @@ This will guide you through:
 
 ### Manual Configuration
 
-#### Environment Variables (Quick Setup)
+#### Environment Variables (Alternative Setup)
 
-Create a `.env` file:
+Create a `.env` file in your home directory:
 
 ```bash
-# Copy the example file
-cp .env.example .env
+# Generate template file
+commitgen env-example
+cp .env.example ~/.env
 
-# Edit with your API key
-OPENAI_API_KEY=your-api-key-here
-COMMITGEN_MODEL=gpt-4o-mini
-COMMITGEN_AI_ENABLED=true
+# Edit with your actual API key
+nano ~/.env
 ```
 
 #### YAML Configuration (Advanced)
