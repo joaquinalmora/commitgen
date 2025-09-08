@@ -388,14 +388,14 @@ func getCached(args []string) {
 
 func clearCache(args []string) {
 	verbose := hasFlag(args, "--verbose")
-	
+
 	c := cache.New()
 	err := c.Clear()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error clearing cache:", err)
 		os.Exit(1)
 	}
-	
+
 	if verbose {
 		fmt.Fprintln(os.Stderr, "Cache cleared successfully")
 	} else {
