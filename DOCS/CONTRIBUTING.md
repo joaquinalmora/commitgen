@@ -5,23 +5,27 @@ Thank you for your interest in contributing to commitgen! This document provides
 ## 🚀 Quick Start
 
 1. **Fork and clone the repository**
+
    ```bash
    git clone https://github.com/joaquinalmora/commitgen.git
    cd commitgen
    ```
 
 2. **Set up development environment**
+
    ```bash
    make dev-setup
    make build
    ```
 
 3. **Run tests**
+
    ```bash
    make test
    ```
 
 4. **Test your changes**
+
    ```bash
    make dev  # Build and test
    make doctor  # System health check
@@ -50,7 +54,7 @@ make clean            # Clean artifacts
 
 ### Project Structure
 
-```
+```text
 cmd/commitgen/        # Main application entry point
 internal/
 ├── cache/           # Caching system
@@ -66,17 +70,20 @@ internal/
 ## 🎯 Areas for Contribution
 
 ### High Priority
+
 - **Test coverage expansion** (currently 3/8 packages)
 - **Error handling improvements**
 - **Performance optimizations**
 - **Documentation improvements**
 
 ### Medium Priority
+
 - **New AI providers** (following the provider interface)
 - **Shell integrations** (bash, fish support)
 - **Configuration enhancements**
 
 ### Ideas Welcome
+
 - **VS Code extension**
 - **Additional shell features**
 - **Commit template customization**
@@ -84,6 +91,7 @@ internal/
 ## 📋 Pull Request Process
 
 1. **Create a feature branch**
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
@@ -94,6 +102,7 @@ internal/
    - Update documentation if needed
 
 3. **Test thoroughly**
+
    ```bash
    make dev
    make test-coverage
@@ -101,6 +110,7 @@ internal/
    ```
 
 4. **Commit with conventional commits**
+
    ```bash
    git commit -m "feat: add new feature description"
    # or
@@ -108,6 +118,7 @@ internal/
    ```
 
 5. **Push and create PR**
+
    ```bash
    git push origin feature/your-feature-name
    ```
@@ -115,16 +126,19 @@ internal/
 ## 🧪 Testing Guidelines
 
 ### Unit Tests
+
 - Place tests in `*_test.go` files
 - Use table-driven tests where appropriate
 - Mock external dependencies
 
 ### Integration Tests
+
 - Test real workflows in `e2e/` directory
 - Test shell integration
 - Test AI provider integration
 
 ### Manual Testing
+
 ```bash
 # Test basic functionality
 echo "test" > test.txt && git add test.txt
@@ -155,6 +169,7 @@ We use [Conventional Commits](https://www.conventionalcommits.org/):
 When reporting bugs, please include:
 
 1. **Environment information**
+
    ```bash
    ./bin/commitgen doctor  # Include this output
    go version

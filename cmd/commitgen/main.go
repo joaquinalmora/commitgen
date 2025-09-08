@@ -73,9 +73,13 @@ var commands = map[string]Command{
 		},
 	},
 	"cache": {
-		Description: "Generate and cache commit message for current staged changes",
+		Description: "Generate and cache commit message for current staged changes [--clear]",
 		Run: func(args []string) {
-			generateCache(args)
+			if hasFlag(args, "--clear") {
+				clearCache(args)
+			} else {
+				generateCache(args)
+			}
 		},
 	},
 	"cached": {
@@ -380,6 +384,23 @@ func getCached(args []string) {
 	}
 
 	fmt.Println(cached.Message)
+}
+
+func clearCache(args []string) {
+	verbose := hasFlag(args, "--verbose")
+	
+	c := cache.New()
+	err := c.Clear()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error clearing cache:", err)
+		os.Exit(1)
+	}
+	
+	if verbose {
+		fmt.Fprintln(os.Stderr, "Cache cleared successfully")
+	} else {
+		fmt.Println("Cache cleared")
+	}
 }
 
 func hasFlag(args []string, flag string) bool {
