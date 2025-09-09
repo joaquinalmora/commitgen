@@ -37,6 +37,10 @@ archives:
     format_overrides:
     - goos: windows
       format: zip
+    files:
+      - .env.example
+      - README.md
+      - docs/**/*
 
 checksum:
   name_template: 'checksums.txt'

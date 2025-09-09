@@ -196,7 +196,19 @@ func (p *OpenAIProvider) GenerateCommitMessage(ctx context.Context, files []stri
 			}
 
 			if len(result) > 0 {
-				message = strings.Join(result, " ")
+				truncated := strings.Join(result, " ")
+				// Check if the last word is a connector word that suggests incomplete thought
+				lastWord := strings.ToLower(result[len(result)-1])
+				if lastWord == "and" || lastWord == "or" || lastWord == "but" || lastWord == "with" || lastWord == "for" || lastWord == "to" {
+					// Remove the connector word to avoid incomplete sentences
+					if len(result) > 1 {
+						truncated = strings.Join(result[:len(result)-1], " ")
+					} else {
+						// If only connector word, fall back to character truncation
+						truncated = firstLine[:69] + "..."
+					}
+				}
+				message = truncated
 			} else {
 				message = firstLine[:69] + "..."
 			}

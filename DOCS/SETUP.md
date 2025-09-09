@@ -45,18 +45,17 @@ This will guide you through:
 
 ### Manual Configuration
 
-#### Environment Variables (Quick Setup)
+#### Environment Variables (Alternative Setup)
 
-Create a `.env` file:
+Create a `.env` file in your home directory:
 
 ```bash
-# Copy the example file
-cp .env.example .env
+# Generate template file
+commitgen env-example
+cp .env.example ~/.env
 
-# Edit with your API key
-OPENAI_API_KEY=your-api-key-here
-COMMITGEN_MODEL=gpt-4o-mini
-COMMITGEN_AI_ENABLED=true
+# Edit with your actual API key
+nano ~/.env
 ```
 
 #### YAML Configuration (Advanced)
@@ -217,7 +216,7 @@ commitgen install-shell  # Automated setup
 source ~/.zshrc
 ```
 
-Manual setup for advanced users - see [DOCS/INLINE_SUGGESTIONS.md](DOCS/INLINE_SUGGESTIONS.md) for detailed instructions on oh-my-zsh + zsh-autosuggestions or plain zsh configurations.
+For manual setup or advanced shell configurations, see the Shell Integration section above for detailed instructions.
 
 ## Environment Configuration
 

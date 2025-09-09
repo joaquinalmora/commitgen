@@ -113,6 +113,12 @@ var commands = map[string]Command{
 			initConfig(args)
 		},
 	},
+	"env-example": {
+		Description: "Generate .env.example template file",
+		Run: func(args []string) {
+			generateEnvExample(args)
+		},
+	},
 	"uninstall-shell": {
 		Description: "Remove shell snippet and guarded .zshrc block",
 		Run: func(args []string) {
@@ -510,4 +516,39 @@ advanced:
 	}
 	fmt.Println("2. Customize the configuration as needed")
 	fmt.Println("3. Run 'commitgen suggest' to test your setup")
+}
+
+func generateEnvExample(args []string) {
+	filename := ".env.example"
+	if len(args) > 0 {
+		filename = args[0]
+	}
+
+	content := `# commitgen Environment Configuration
+# Copy this file to .env and add your actual API keys
+
+# OpenAI Configuration (Primary AI Provider)
+# Get your API key from: https://platform.openai.com/api-keys
+OPENAI_API_KEY=your-openai-api-key-here
+
+# Optional: Override default model (gpt-4o-mini)
+# COMMITGEN_MODEL=gpt-4o
+
+# Performance Tuning (optional)
+# COMMITGEN_CACHE_TTL=24h
+# COMMITGEN_MAX_FILES=10
+# COMMITGEN_PATCH_BYTES=102400
+
+# Advanced Options (optional)
+# COMMITGEN_AI_FALLBACK=true
+# COMMITGEN_CONVENTIONS_FILE=/path/to/custom-conventions.md
+`
+
+	if err := os.WriteFile(filename, []byte(content), 0644); err != nil {
+		fmt.Printf("❌ Failed to create %s: %v\n", filename, err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("✅ Created %s\n", filename)
+	fmt.Println("Edit this file with your actual API key, then copy to .env")
 }
