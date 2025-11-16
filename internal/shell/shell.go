@@ -121,6 +121,15 @@ func removeGuardedBlock(s string) (string, bool) {
 func pluginFirstSnippet() string {
 	return `# commitgen zsh snippet (plugin-first)
 # plugin strategy for zsh-autosuggestions
+_cg_fetch_suggestion() {
+  local suggestion
+  suggestion=$(commitgen cached --plain 2>/dev/null) || true
+  if [[ -z "$suggestion" ]]; then
+    suggestion=$(commitgen suggest --ai --plain 2>/dev/null) || true
+  fi
+  [[ -n "$suggestion" ]] && echo "$suggestion"
+}
+
 _cg_autosuggest_available() {
   # detect autosuggestions plugin more thoroughly
   if [[ -n ${ZSH_AUTOSUGGEST_DIR-} ]]; then
@@ -142,7 +151,7 @@ if _cg_autosuggest_available; then
     # only run for exact patterns: git commit -m " or gc "
     [[ $BUFFER == "git commit -m \""* ]] || [[ $BUFFER == "gc \""* ]] || return 1
     local suggestion
-    suggestion=$(commitgen suggest --ai --plain 2>/dev/null)
+    suggestion=$(_cg_fetch_suggestion)
     [[ -n "$suggestion" ]] && echo "${suggestion}\""
   }
   # ensure strategy order: commitgen first, then history (avoid duplicates)
@@ -161,7 +170,7 @@ else
     local inside=${BUFFER#*\"}
     inside=${inside%%\"*}
     local sug
-    sug=$(commitgen suggest --ai --plain 2>/dev/null || true)
+    sug=$(_cg_fetch_suggestion)
     [[ -z $sug ]] && return 1
     if [[ $inside == "$sug" ]]; then
       return 1
@@ -171,7 +180,7 @@ else
   function cg-accept-preview() {
     # insert suggestion into the quoted message with closing quote
     local suggestion
-    suggestion=$(commitgen suggest --ai --plain 2>/dev/null)
+    suggestion=$(_cg_fetch_suggestion)
     [[ -n "$suggestion" ]] && BUFFER=${BUFFER%%\"*}\"${suggestion}\"
     zle reset-prompt
   }

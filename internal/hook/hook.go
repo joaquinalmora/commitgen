@@ -3,7 +3,9 @@ package hook
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strconv"
 )
 
 func InstallHook() {
@@ -13,11 +15,13 @@ func InstallHook() {
 		return
 	}
 
-	installPrepareCommitMsgHook(cwd)
-	installPostIndexChangeHook(cwd)
+	binPath := resolveBinaryPath(cwd)
+
+	installPrepareCommitMsgHook(cwd, binPath)
+	installPostIndexChangeHook(cwd, binPath)
 }
 
-func installPrepareCommitMsgHook(cwd string) {
+func installPrepareCommitMsgHook(cwd string, binPath string) {
 	hookPath := filepath.Join(cwd, ".git", "hooks", "prepare-commit-msg")
 
 	if _, err := os.Stat(hookPath); err == nil {
@@ -28,8 +32,6 @@ func installPrepareCommitMsgHook(cwd string) {
 			return
 		}
 	}
-
-	binPath := filepath.Join(cwd, "bin", "commitgen")
 
 	script := fmt.Sprintf(`#!/bin/sh
 # commitgen prepare-commit-msg hook
@@ -70,7 +72,7 @@ fi
 	fmt.Fprintln(os.Stderr, "✅ prepare-commit-msg hook installed successfully")
 }
 
-func installPostIndexChangeHook(cwd string) {
+func installPostIndexChangeHook(cwd string, binPath string) {
 	hookPath := filepath.Join(cwd, ".git", "hooks", "post-index-change")
 
 	if _, err := os.Stat(hookPath); err == nil {
@@ -81,8 +83,6 @@ func installPostIndexChangeHook(cwd string) {
 			return
 		}
 	}
-
-	binPath := filepath.Join(cwd, "bin", "commitgen")
 
 	script := fmt.Sprintf(`#!/bin/sh
 # commitgen post-index-change hook (auto-cache)
@@ -115,6 +115,21 @@ func UninstallHook() {
 
 	uninstallPrepareCommitMsgHook(cwd)
 	uninstallPostIndexChangeHook(cwd)
+}
+
+func resolveBinaryPath(cwd string) string {
+	localBin := filepath.Join(cwd, "bin", "commitgen")
+	if info, err := os.Stat(localBin); err == nil {
+		if info.Mode()&0o111 != 0 {
+			return strconv.Quote(localBin)
+		}
+	}
+
+	if globalBin, err := exec.LookPath("commitgen"); err == nil {
+		return strconv.Quote(globalBin)
+	}
+
+	return "commitgen"
 }
 
 func uninstallPrepareCommitMsgHook(cwd string) {
