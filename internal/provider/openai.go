@@ -217,6 +217,12 @@ func (p *OpenAIProvider) GenerateCommitMessage(ctx context.Context, files []stri
 		}
 	}
 
+	message = strings.TrimSpace(message)
+	message = trimTrailingConnector(message)
+	if message == "" {
+		message = "chore: update files"
+	}
+
 	return message, nil
 }
 
@@ -261,4 +267,22 @@ func loadConventions() (string, error) {
 		return "", err
 	}
 	return string(content), nil
+}
+
+func trimTrailingConnector(message string) string {
+	if message == "" {
+		return message
+	}
+
+	connectors := []string{" and", " or", " but", " with", " for", " to"}
+	lower := strings.ToLower(message)
+
+	for _, connector := range connectors {
+		if strings.HasSuffix(lower, connector) {
+			message = strings.TrimSpace(message[:len(message)-len(connector)])
+			break
+		}
+	}
+
+	return strings.TrimSpace(message)
 }

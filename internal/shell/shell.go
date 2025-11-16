@@ -121,11 +121,38 @@ func removeGuardedBlock(s string) (string, bool) {
 func pluginFirstSnippet() string {
 	return `# commitgen zsh snippet (plugin-first)
 # plugin strategy for zsh-autosuggestions
+typeset -g _CG_BIN_PATH=""
+
+_cg_find_bin() {
+  if [[ -n ${COMMITGEN_BIN-} ]]; then
+    _CG_BIN_PATH="${COMMITGEN_BIN}"
+  elif [[ -n "$_CG_BIN_PATH" && -x "$_CG_BIN_PATH" ]]; then
+    return 0
+  elif _cg_bin=$(command -v commitgen 2>/dev/null); then
+    _CG_BIN_PATH="$_cg_bin"
+  else
+    local repo_root
+    repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || repo_root=""
+    if [[ -n "$repo_root" && -x "$repo_root/bin/commitgen" ]]; then
+      _CG_BIN_PATH="$repo_root/bin/commitgen"
+    else
+      return 1
+    fi
+  fi
+  [[ -x "$_CG_BIN_PATH" ]] || return 1
+  return 0
+}
+
+_cg_run_commitgen() {
+  _cg_find_bin || return 1
+  "$_CG_BIN_PATH" "$@"
+}
+
 _cg_fetch_suggestion() {
   local suggestion
-  suggestion=$(commitgen cached --plain 2>/dev/null) || true
+  suggestion=$(_cg_run_commitgen cached --plain 2>/dev/null) || true
   if [[ -z "$suggestion" ]]; then
-    suggestion=$(commitgen suggest --ai --plain 2>/dev/null) || true
+    suggestion=$(_cg_run_commitgen suggest --ai --plain 2>/dev/null) || true
   fi
   [[ -n "$suggestion" ]] && echo "$suggestion"
 }
@@ -158,10 +185,11 @@ if _cg_autosuggest_available; then
   if [[ -n "${ZSH_AUTOSUGGEST_STRATEGY-}" ]]; then
     # Remove any existing 'commitgen' entries and prepend it
     ZSH_AUTOSUGGEST_STRATEGY=("${(@)ZSH_AUTOSUGGEST_STRATEGY:#commitgen}")
-    export ZSH_AUTOSUGGEST_STRATEGY=(commitgen ${ZSH_AUTOSUGGEST_STRATEGY[@]})
+    export ZSH_AUTOSUGGEST_STRATEGY=(commitgen)
   else
-    export ZSH_AUTOSUGGEST_STRATEGY=(commitgen history)
+    export ZSH_AUTOSUGGEST_STRATEGY=(commitgen)
   fi
+  export ZSH_AUTOSUGGEST_USE_ASYNC=0
 else
   # native fallback only when autosuggestions not available
   _cg_update_preview() {
