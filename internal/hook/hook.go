@@ -69,7 +69,7 @@ fi
 		return
 	}
 
-	fmt.Fprintln(os.Stderr, "✅ prepare-commit-msg hook installed successfully")
+	fmt.Fprintln(os.Stderr, "prepare-commit-msg hook installed successfully")
 }
 
 func installPostIndexChangeHook(cwd string, binPath string) {
@@ -102,8 +102,8 @@ fi
 		return
 	}
 
-	fmt.Fprintln(os.Stderr, "✅ post-index-change hook installed successfully")
-	fmt.Fprintln(os.Stderr, "🚀 Auto-cache enabled: commit messages will be pre-generated on git add")
+	fmt.Fprintln(os.Stderr, "post-index-change hook installed successfully")
+	fmt.Fprintln(os.Stderr, "Auto-cache enabled: commit messages will be pre-generated on git add")
 }
 
 func UninstallHook() {
@@ -165,12 +165,12 @@ func uninstallPrepareCommitMsgHook(cwd string) {
 		if err := os.Rename(backupPath, hookPath); err != nil {
 			fmt.Fprintln(os.Stderr, "failed to restore backup hook:", err)
 		} else {
-			fmt.Fprintln(os.Stderr, "✅ prepare-commit-msg hook removed, backup restored")
+			fmt.Fprintln(os.Stderr, "prepare-commit-msg hook removed, backup restored")
 			return
 		}
 	}
 
-	fmt.Fprintln(os.Stderr, "✅ prepare-commit-msg hook removed successfully")
+	fmt.Fprintln(os.Stderr, "prepare-commit-msg hook removed successfully")
 }
 
 func uninstallPostIndexChangeHook(cwd string) {
@@ -205,12 +205,12 @@ func uninstallPostIndexChangeHook(cwd string) {
 		if err := os.Rename(backupPath, hookPath); err != nil {
 			fmt.Fprintln(os.Stderr, "failed to restore post-index-change backup hook:", err)
 		} else {
-			fmt.Fprintln(os.Stderr, "✅ post-index-change hook removed, backup restored")
+			fmt.Fprintln(os.Stderr, "post-index-change hook removed, backup restored")
 			return
 		}
 	}
 
-	fmt.Fprintln(os.Stderr, "✅ post-index-change hook removed successfully")
+	fmt.Fprintln(os.Stderr, "post-index-change hook removed successfully")
 }
 
 func containsCommitgenSignature(content string) bool {

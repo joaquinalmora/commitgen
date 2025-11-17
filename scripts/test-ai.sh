@@ -3,7 +3,7 @@
 # Test script for AI implementation
 # This demonstrates how to test the OpenAI provider
 
-echo "🚀 Testing commitgen AI implementation"
+echo "Testing commitgen AI implementation"
 echo "======================================="
 
 echo ""
@@ -34,4 +34,4 @@ echo "   COMMITGEN_MAX_FILES=10                  # Max files to analyze"
 echo "   COMMITGEN_PATCH_BYTES=102400            # Max patch size"
 
 echo ""
-echo "✅ AI foundation is working! Ready for real API key testing."
+echo "AI foundation is working! Ready for real API key testing."

@@ -426,7 +426,7 @@ func min(a, b int) int {
 }
 
 func initConfig(args []string) {
-	fmt.Println("🔧 CommitGen Configuration Setup")
+	fmt.Println("CommitGen Configuration Setup")
 	fmt.Println("This will create a commitgen.yaml configuration file.")
 	fmt.Println()
 
@@ -447,7 +447,7 @@ func initConfig(args []string) {
 
 	// Check if config file already exists
 	if _, err := os.Stat(configPath); err == nil {
-		fmt.Printf("⚠️  Configuration file already exists at %s\n", configPath)
+		fmt.Printf("Warning: Configuration file already exists at %s\n", configPath)
 		fmt.Print("Overwrite? [y/N]: ")
 		var confirm string
 		_, _ = fmt.Scanln(&confirm) // ignore input errors
@@ -504,11 +504,11 @@ advanced:
 `, aiEnabled, model, apiKey)
 
 	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
-		fmt.Printf("❌ Failed to create config file: %v\n", err)
+		fmt.Printf("Failed to create config file: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("✅ Configuration file created at %s\n", configPath)
+	fmt.Printf("Configuration file created at %s\n", configPath)
 	fmt.Println()
 	fmt.Println("Next steps:")
 	if apiKey == "" {
@@ -545,10 +545,10 @@ OPENAI_API_KEY=your-openai-api-key-here
 `
 
 	if err := os.WriteFile(filename, []byte(content), 0644); err != nil {
-		fmt.Printf("❌ Failed to create %s: %v\n", filename, err)
+		fmt.Printf("Failed to create %s: %v\n", filename, err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("✅ Created %s\n", filename)
+	fmt.Printf("Created %s\n", filename)
 	fmt.Println("Edit this file with your actual API key, then copy to .env")
 }

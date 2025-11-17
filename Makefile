@@ -10,33 +10,33 @@ all: build
 build:
 	@echo "Building commitgen..."
 	go build -o bin/commitgen ./cmd/commitgen
-	@echo "✅ Built bin/commitgen"
+	@echo "Built bin/commitgen"
 
 # Run all tests
 test:
 	@echo "Running tests..."
 	go test ./...
-	@echo "✅ Tests completed"
+	@echo "Tests completed"
 
 # Run tests with coverage
 test-coverage:
 	@echo "Running tests with coverage..."
 	go test -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out -o coverage.html
-	@echo "✅ Coverage report generated: coverage.html"
+	@echo "Coverage report generated: coverage.html"
 
 # Install to system
 install:
 	@echo "Installing commitgen..."
 	go install ./cmd/commitgen
-	@echo "✅ Installed commitgen to $(shell go env GOPATH)/bin"
+	@echo "Installed commitgen to $(shell go env GOPATH)/bin"
 
 # Clean build artifacts
 clean:
 	@echo "Cleaning up..."
 	rm -rf bin/
 	rm -f coverage.out coverage.html
-	@echo "✅ Cleaned up build artifacts"
+	@echo "Cleaned up build artifacts"
 
 # Run system health check
 doctor:
@@ -48,11 +48,11 @@ dev-setup:
 	@echo "Setting up development environment..."
 	go mod tidy
 	go mod download
-	@echo "✅ Development environment ready"
+	@echo "Development environment ready"
 
 # Quick development build and test
 dev: build test
-	@echo "✅ Development build and test completed"
+	@echo "Development build and test completed"
 
 # Show available targets
 help:
@@ -73,4 +73,4 @@ release-dry:
 	@echo "Testing release process..."
 	@command -v goreleaser >/dev/null 2>&1 || { echo "Installing GoReleaser..."; curl -sfL https://goreleaser.com/static/run | bash -s -- --version; }
 	goreleaser release --snapshot --clean
-	@echo "✅ Release dry run completed - check dist/ directory"
+	@echo "Release dry run completed - check dist/ directory"

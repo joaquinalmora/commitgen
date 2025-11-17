@@ -4,7 +4,7 @@
 
 AI-powered commit message generation for Git. Generate professional, contextual commit messages from your staged changes using OpenAI or local Ollama models with intelligent caching and seamless git workflow integration.
 
-## ⚡ Quick Start
+## Quick Start
 
 ### Installation
 
@@ -46,17 +46,17 @@ commitgen suggest --ai
 git commit -m "  # AI suggestions appear here
 ```
 
-## ✨ Features
+## Features
 
-- **🤖 AI-Powered**: OpenAI and Ollama support for professional commit messages
-- **⚡ Auto-Cache**: Intelligent caching with 50x performance boost
-- **🔄 Git Integration**: Automatic hooks for seamless workflow
-- **👻 Shell Integration**: Ghost text suggestions as you type `git commit -m "`
-- **🛡️ Smart Fallback**: Heuristic generation when AI is unavailable
-- **🚀 Zero Config**: One-command setup with intelligent defaults
-- **🎯 Context-Aware**: Analyzes actual code changes, not just file names
+- **AI-Powered**: OpenAI and Ollama support for professional commit messages
+- **Auto-Cache**: Intelligent caching with 50x performance boost
+- **Git Integration**: Automatic hooks for seamless workflow
+- **Shell Integration**: Ghost text suggestions as you type `git commit -m "`
+- **Smart Fallback**: Heuristic generation when AI is unavailable
+- **Zero Config**: One-command setup with intelligent defaults
+- **Context-Aware**: Analyzes actual code changes, not just file names
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -93,7 +93,7 @@ output:
   colors: true
 ```
 
-## 🚀 Usage Examples
+## Usage Examples
 
 ### Basic Commands
 
@@ -130,7 +130,7 @@ commitgen install-shell
 git commit -m "feat: add user auth and↩ # <-- AI suggestion appears
 ```
 
-## 🤖 AI Providers
+## AI Providers
 
 | Provider | Best For | Setup |
 |----------|----------|-------|
@@ -149,7 +149,7 @@ git commit -m "feat: add user auth and↩ # <-- AI suggestion appears
 2. Pull a model: `ollama pull llama3.2:3b`
 3. Configure: `export COMMITGEN_PROVIDER=ollama COMMITGEN_MODEL=llama3.2:3b`
 
-## 🛠️ Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -182,7 +182,7 @@ commitgen suggest --verbose             # Show detailed logs
 commitgen doctor                        # System diagnostics
 ```
 
-## 🎯 How It Works
+## How It Works
 
 1. **Analyze Changes**: Reads git staged changes and file modifications
 2. **Generate Context**: Creates intelligent prompts from code diffs
@@ -190,7 +190,7 @@ commitgen doctor                        # System diagnostics
 4. **Smart Caching**: Caches results for identical changes
 5. **Integration**: Provides suggestions via git hooks or shell integration
 
-## 📚 Documentation
+## Documentation
 
 - **[Setup Guide](docs/SETUP.md)** - Complete installation and configuration
 - **[Technical Reference](docs/TECHNICAL.md)** - Architecture and development
@@ -198,7 +198,7 @@ commitgen doctor                        # System diagnostics
 - **[Changelog](docs/CHANGELOG.md)** - Release history
 - **[AI Commit Workflow](DOCS/AI_COMMIT_WORKFLOW.md)** - zsh `aicommit` function + sample git hook
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/amazing-feature`
@@ -207,7 +207,7 @@ commitgen doctor                        # System diagnostics
 
 See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for detailed guidelines.
 
-## � Uninstall
+## Uninstall
 
 Complete removal:
 
@@ -226,6 +226,6 @@ brew uninstall commitgen
 rm ~/.env ~/.config/commitgen.zsh
 ```
 
-## 📄 License
+## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
