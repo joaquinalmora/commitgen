@@ -119,28 +119,33 @@ func removeGuardedBlock(s string) (string, bool) {
 }
 
 func pluginFirstSnippet() string {
-	return `# commitgen zsh snippet (plugin-first)
-# plugin strategy for zsh-autosuggestions
+	return `# commitgen zsh snippet (native ghost text)
 typeset -g _CG_BIN_PATH=""
+typeset -g _CG_PREVIEW_INIT=0
 
 _cg_find_bin() {
-  if [[ -n ${COMMITGEN_BIN-} ]]; then
+  if [[ -n ${COMMITGEN_BIN-} && -x ${COMMITGEN_BIN} ]]; then
     _CG_BIN_PATH="${COMMITGEN_BIN}"
-  elif [[ -n "$_CG_BIN_PATH" && -x "$_CG_BIN_PATH" ]]; then
     return 0
-  elif _cg_bin=$(command -v commitgen 2>/dev/null); then
-    _CG_BIN_PATH="$_cg_bin"
-  else
-    local repo_root
-    repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || repo_root=""
-    if [[ -n "$repo_root" && -x "$repo_root/bin/commitgen" ]]; then
-      _CG_BIN_PATH="$repo_root/bin/commitgen"
-    else
-      return 1
-    fi
   fi
-  [[ -x "$_CG_BIN_PATH" ]] || return 1
-  return 0
+
+  if [[ -n "$_CG_BIN_PATH" && -x "$_CG_BIN_PATH" ]]; then
+    return 0
+  fi
+
+  if _cg_bin=$(command -v commitgen 2>/dev/null); then
+    _CG_BIN_PATH="$_cg_bin"
+    return 0
+  fi
+
+  local repo_root
+  repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || repo_root=""
+  if [[ -n "$repo_root" && -x "$repo_root/bin/commitgen" ]]; then
+    _CG_BIN_PATH="$repo_root/bin/commitgen"
+    return 0
+  fi
+
+  return 1
 }
 
 _cg_run_commitgen() {
@@ -157,67 +162,73 @@ _cg_fetch_suggestion() {
   [[ -n "$suggestion" ]] && echo "$suggestion"
 }
 
-_cg_autosuggest_available() {
-  # detect autosuggestions plugin more thoroughly
-  if [[ -n ${ZSH_AUTOSUGGEST_DIR-} ]]; then
-    return 0
-  fi
-  if [[ -f ${ZSH:-$HOME/.oh-my-zsh}/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
-    return 0
-  fi
-  # Check if autosuggestions functions exist
-  if [[ $(type -w _zsh_autosuggest_strategy_history 2>/dev/null) == *function* ]]; then
-    return 0
-  fi
-  return 1
+_cg_match_prefix() {
+  local left="$LBUFFER"
+  case "$left" in
+    'git commit -m "'*)
+      printf 'git commit -m "'
+      return 0
+      ;;
+    'gc "'*)
+      printf 'gc "'
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
 }
 
-if _cg_autosuggest_available; then
-  # Use zsh-autosuggestions strategy (preferred)
-  _zsh_autosuggest_strategy_commitgen() {
-    # only run for exact patterns: git commit -m " or gc "
-    [[ $BUFFER == "git commit -m \""* ]] || [[ $BUFFER == "gc \""* ]] || return 1
-    local suggestion
-    suggestion=$(_cg_fetch_suggestion)
-    [[ -n "$suggestion" ]] && echo "${suggestion}\""
-  }
-  # ensure strategy order: commitgen first, then history (avoid duplicates)
-  if [[ -n "${ZSH_AUTOSUGGEST_STRATEGY-}" ]]; then
-    # Remove any existing 'commitgen' entries and prepend it
-    ZSH_AUTOSUGGEST_STRATEGY=("${(@)ZSH_AUTOSUGGEST_STRATEGY:#commitgen}")
-    export ZSH_AUTOSUGGEST_STRATEGY=(commitgen)
-  else
-    export ZSH_AUTOSUGGEST_STRATEGY=(commitgen)
+_cg_update_preview_widget() {
+  local prefix
+  prefix=$(_cg_match_prefix) || { POSTDISPLAY=; return; }
+
+  local after=${LBUFFER#${prefix}}
+  if [[ "$after" == *\"* ]]; then
+    POSTDISPLAY=
+    return
   fi
-  export ZSH_AUTOSUGGEST_USE_ASYNC=0
-else
-  # native fallback only when autosuggestions not available
-  _cg_update_preview() {
-    [[ $BUFFER == "git commit -m \""* ]] || [[ $BUFFER == "gc \""* ]] || return 1
-    # extract inside-quotes content
-    local inside=${BUFFER#*\"}
-    inside=${inside%%\"*}
-    local sug
-    sug=$(_cg_fetch_suggestion)
-    [[ -z $sug ]] && return 1
-    if [[ $inside == "$sug" ]]; then
-      return 1
-    fi
-    zle -M "$sug"
-  }
-  function cg-accept-preview() {
-    # insert suggestion into the quoted message with closing quote
-    local suggestion
-    suggestion=$(_cg_fetch_suggestion)
-    [[ -n "$suggestion" ]] && BUFFER=${BUFFER%%\"*}\"${suggestion}\"
-    zle reset-prompt
-  }
-  zle -N cg-accept-preview
-  autoload -Uz add-zsh-hook
-  add-zsh-hook -Uz preexec _cg_update_preview
-  bindkey -M emacs '^F' cg-accept-preview
-  bindkey -M viins '^F' cg-accept-preview
+
+  local suggestion
+  suggestion=$(_cg_fetch_suggestion)
+  if [[ -z "$suggestion" ]]; then
+    POSTDISPLAY=
+    return
+  fi
+
+  local typed="${after}"
+  if [[ "$typed" == "$suggestion" ]]; then
+    POSTDISPLAY=
+    return
+  fi
+
+  POSTDISPLAY=${suggestion}\"
+}
+
+_cg_accept_preview_widget() {
+  if [[ -z "$POSTDISPLAY" ]]; then
+    _cg_update_preview_widget
+  fi
+
+  if [[ -n "$POSTDISPLAY" ]]; then
+    LBUFFER+="$POSTDISPLAY"
+    POSTDISPLAY=
+  fi
+  zle -R
+}
+
+if [[ $_CG_PREVIEW_INIT -eq 0 ]]; then
+  typeset -ga zle_highlight
+  if (( ${zle_highlight[(I)special:*]} == 0 )); then
+    zle_highlight+=(special:fg=240)
+  fi
+
+  zle -N zle-line-pre-redraw _cg_update_preview_widget
+  zle -N cg-accept-preview _cg_accept_preview_widget
+  bindkey '^F' cg-accept-preview
   bindkey '^[[C' cg-accept-preview
+  bindkey '^[[F' cg-accept-preview
+  typeset -g _CG_PREVIEW_INIT=1
 fi
 `
 }

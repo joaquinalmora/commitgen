@@ -196,6 +196,7 @@ commitgen doctor                        # System diagnostics
 - **[Technical Reference](docs/TECHNICAL.md)** - Architecture and development
 - **[Contributing Guide](docs/CONTRIBUTING.md)** - Development guidelines
 - **[Changelog](docs/CHANGELOG.md)** - Release history
+- **[AI Commit Workflow](DOCS/AI_COMMIT_WORKFLOW.md)** - zsh `aicommit` function + sample git hook
 
 ## 🤝 Contributing
 

@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Sample prepare-commit-msg hook that calls `commitgen` once.
+
+set -euo pipefail
+
+MSG_FILE="$1"
+COMMIT_SOURCE="${2:-}"
+SHA1="${3:-}"
+
+# 1) If Git already provided a message (template, -m/-F, merge, etc.), exit.
+if [[ -s "$MSG_FILE" ]]; then
+  exit 0
+fi
+
+case "$COMMIT_SOURCE" in
+  merge|squash|commit|template)
+    exit 0
+    ;;
+esac
+
+# 2) Ensure commitgen exists; silently skip if not available.
+COMMITGEN_CLI="${COMMITGEN_CLI:-commitgen}"
+if ! command -v "$COMMITGEN_CLI" >/dev/null 2>&1; then
+  exit 0
+fi
+
+# 3) Generate once and write to the message file.
+if ! msg="$("$COMMITGEN_CLI" suggest --ai --plain 2> >(cat >&2))"; then
+  printf 'prepare-commit-msg: %s suggest failed; leaving message empty\n' "$COMMITGEN_CLI" >&2
+  exit 0
+fi
+
+msg="$(echo "$msg" | tr -d '\r')"
+if [[ -z "$msg" ]]; then
+  exit 0
+fi
+
+printf '%s\n' "$msg" >"$MSG_FILE"
