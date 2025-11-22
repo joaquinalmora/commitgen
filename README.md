@@ -1,6 +1,12 @@
 # commitgen
 
 [![CI](https://github.com/joaquinalmora/commitgen/actions/workflows/ci.yml/badge.svg)](https://github.com/joaquinalmora/commitgen/actions/workflows/ci.yml)
+<em>Built with the tools and technologies:</em>
+
+![Go](https://img.shields.io/badge/Go-00ADD8.svg?style=default&logo=Go&logoColor=white)
+![GNU Make](https://img.shields.io/badge/GNU%20Make-000000.svg?style=default&logo=GNU&logoColor=white)
+![Shell](https://img.shields.io/badge/Shell-4EAA25.svg?style=default&logo=GNU%20Bash&logoColor=white)
+![GitHub](https://img.shields.io/badge/GitHub-181717.svg?style=default&logo=GitHub&logoColor=white)
 
 AI-powered commit message generation for Git. Generate professional, contextual commit messages from your staged changes using OpenAI or local Ollama models with intelligent caching and seamless git workflow integration.
 
