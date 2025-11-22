@@ -107,6 +107,8 @@ git commit                 # Will auto-suggest messages
 commitgen uninstall-hook   # Remove hook
 ```
 
+> The installer writes two hooks: `.git/hooks/prepare-commit-msg` (injects the suggestion when the commit message is empty, preferring `commitgen cached`) and `.git/hooks/post-index-change` (auto-runs `commitgen cache` after every `git add`). `post-index-change` was added in Git 2.44, so uninstall the hooks if you're on an older Git release or if your hosting provider rejects unfamiliar hooks.
+
 ## Shell Integration
 
 ### Automatic Setup
@@ -114,6 +116,8 @@ commitgen uninstall-hook   # Remove hook
 ```bash
 commitgen install-shell
 ```
+
+This command assumes **zsh** and appends a guarded block to `~/.zshrc` that sources `~/.config/commitgen.zsh`. The snippet implements the preview widget and key bindings, and you can remove it later with `commitgen uninstall-shell`.
 
 ### Manual zsh Integration
 
@@ -192,12 +196,11 @@ commitgen doctor             # System diagnostics
 commitgen --help            # Show available commands
 commitgen suggest --help    # Command-specific help
 ```
-   ```bash
-   echo 'OPENAI_API_KEY=sk-your-key-here' >> ~/.env
-   ```
 
-Optional model override:
+### Example `.env` entries
+
 ```bash
+echo 'OPENAI_API_KEY=sk-your-key-here' >> ~/.env
 echo 'COMMITGEN_MODEL=gpt-4o' >> ~/.env  # Default: gpt-4o-mini
 ```
 
@@ -222,21 +225,16 @@ For manual setup or advanced shell configurations, see the Shell Integration sec
 
 Core variables:
 
-```bash
-# Provider & Authentication
-OPENAI_API_KEY=sk-your-key
-COMMITGEN_PROVIDER=openai               # 'openai' or 'ollama'
-COMMITGEN_MODEL=gpt-4o-mini             # Model override
-
-# Performance
-COMMITGEN_CACHE_TTL=24h                 # Cache lifetime  
-COMMITGEN_MAX_FILES=10                  # Max files analyzed
-COMMITGEN_PATCH_BYTES=102400            # Max patch size
-
-# Advanced
-COMMITGEN_CONVENTIONS_FILE=~/custom.md  # Custom conventions
-COMMITGEN_AI_FALLBACK=true              # Fallback to heuristics
-```
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `OPENAI_API_KEY` | Required API key for OpenAI | _none_ |
+| `COMMITGEN_AI` | Enable AI mode automatically | `false` |
+| `COMMITGEN_MODEL` | OpenAI model override | `gpt-4o-mini` |
+| `COMMITGEN_BASE_URL` | Custom OpenAI-compatible endpoint | `https://api.openai.com/v1` |
+| `COMMITGEN_MAX_FILES` | Max files included in prompts | `10` |
+| `COMMITGEN_PATCH_BYTES` | Max diff bytes sent to AI | `102400` |
+| `COMMITGEN_AI_FALLBACK` | Toggle heuristic fallback | `true` |
+| `COMMITGEN_CONVENTIONS_FILE` | Custom markdown conventions | _unset_ |
 
 ## Troubleshooting
 
@@ -283,7 +281,7 @@ cd /path/to/repo && commitgen install-hook
 
 ### Custom API Endpoints
 ```bash
-OPENAI_BASE_URL=https://your-endpoint.com/v1
+COMMITGEN_BASE_URL=https://your-endpoint.com/v1
 OPENAI_API_KEY=your-key
 ```
 
@@ -297,7 +295,7 @@ commitgen doctor  # Should show all green
 Test workflow:
 ```bash
 echo "test" > test.txt && git add test.txt
-git commit -m "  # Look for ghost text suggestions
+git commit -m ""  # Look for ghost text suggestions
 ```
 
 ## Uninstall

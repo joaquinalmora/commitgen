@@ -52,12 +52,12 @@ git add .
 commitgen suggest --ai
 
 # Or just commit and get auto-suggestions
-git commit -m "  # AI suggestions appear here
+git commit -m ""  # AI suggestions appear here
 ```
 
 ## Features
 
-- **AI-Powered**: OpenAI and Ollama support for professional commit messages
+- **AI-Powered**: OpenAI GPT-4o-mini (and other OpenAI models) for professional commit messages
 - **Auto-Cache**: Intelligent caching with 50x performance boost
 - **Git Integration**: Automatic hooks for seamless workflow
 - **Shell Integration**: Ghost text suggestions as you type `git commit -m "`
@@ -69,17 +69,16 @@ git commit -m "  # AI suggestions appear here
 
 ### Environment Variables
 
-```bash
-# Core configuration
-OPENAI_API_KEY=sk-your-key-here
-COMMITGEN_PROVIDER=openai               # 'openai' or 'ollama'  
-COMMITGEN_MODEL=gpt-4o-mini             # Model selection
-
-# Performance tuning
-COMMITGEN_CACHE_TTL=24h                 # Cache lifetime
-COMMITGEN_MAX_FILES=10                  # Max files analyzed
-COMMITGEN_PATCH_BYTES=102400            # Max patch size
-```
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `OPENAI_API_KEY` | API key used by the OpenAI provider | _required for AI_ |
+| `COMMITGEN_AI` | Enable AI automatically (otherwise pass `--ai`) | `false` |
+| `COMMITGEN_MODEL` | OpenAI model name | `gpt-4o-mini` |
+| `COMMITGEN_BASE_URL` | Override the OpenAI API URL for proxies/self-hosting | `https://api.openai.com/v1` |
+| `COMMITGEN_MAX_FILES` | Max staged files included in the prompt | `10` |
+| `COMMITGEN_PATCH_BYTES` | Max bytes of diff sent to the AI | `102400` |
+| `COMMITGEN_AI_FALLBACK` | Disable (`false`) or enable (`true`) heuristic fallback | `true` |
+| `COMMITGEN_CONVENTIONS_FILE` | Path to custom commit-style markdown | _unset_ |
 
 ### YAML Configuration
 
@@ -109,11 +108,31 @@ output:
 ```bash
 commitgen suggest                       # Generate commit message
 commitgen suggest --ai                  # Force AI generation
+commitgen suggest --cached              # Reuse the last cached AI result
 commitgen suggest --verbose             # Show detailed logs
+commitgen cached --plain                # Print cached message without formatting
 commitgen cache                         # Pre-generate cache
 commitgen cache --clear                 # Clear cache
+commitgen init                          # Interactive config (local)
+commitgen init --global                 # Interactive config in ~/.commitgen.yaml
+commitgen env-example                   # Write .env.example
 commitgen doctor                        # System health check
+commitgen version --verbose             # Include git commit + build date
 ```
+
+### CLI Reference
+
+| Command | What it does | Helpful flags |
+|---------|--------------|---------------|
+| `commitgen suggest` | Generates commit text from staged changes | `--ai`, `--cached`, `--plain`, `--verbose` |
+| `commitgen cache` | Performs AI/heuristic generation and stores the result | `--clear`, `--verbose` |
+| `commitgen cached` | Prints the most recent cached commit message (used by hooks/shell) | `--plain`, `--verbose` |
+| `commitgen install-hook` / `uninstall-hook` | Manage `.git/hooks/prepare-commit-msg` and `.git/hooks/post-index-change` | _n/a_ |
+| `commitgen install-shell` / `uninstall-shell` | Manage the guarded `~/.zshrc` block + `~/.config/commitgen.zsh` snippet | _n/a_ |
+| `commitgen init` | Interactive YAML config generator (supports `--global`) | `--global` |
+| `commitgen env-example` | Writes `.env.example` with the current defaults | _n/a_ |
+| `commitgen doctor` | Runs environment checks | `--verbose` (via `COMMITGEN_AI=1` etc.) |
+| `commitgen version` | Prints version/build metadata | `--verbose` |
 
 ### Git Integration
 
@@ -129,7 +148,11 @@ git commit
 commitgen uninstall-hook
 ```
 
+> `commitgen install-hook` writes both `.git/hooks/prepare-commit-msg` (inserts the suggestion when the message is empty) and `.git/hooks/post-index-change` (warms the cache every time you run `git add`). The cache-first behavior depends on `commitgen cached`, so keep the binary accessible to your repo. `post-index-change` is new in Git 2.44, so skip the auto-cache hook (or remove it via `commitgen uninstall-hook`) if you are on an older Git release or a hosting platform that disallows it.
+
 ### Shell Integration
+
+Shell ghost text currently targets **zsh** only. The installer writes a guarded block to `~/.zshrc` that sources `~/.config/commitgen.zsh`, which contains the preview widget and `^F` binding.
 
 ```bash
 # Install shell integration (zsh)
@@ -139,12 +162,16 @@ commitgen install-shell
 git commit -m "feat: add user auth and↩ # <-- AI suggestion appears
 ```
 
+The installer leaves any existing `~/.zshrc` content alone, and you can remove the snippet at any time with `commitgen uninstall-shell` (which deletes both the guard block and `~/.config/commitgen.zsh`).
+
 ## AI Providers
 
-| Provider | Best For | Setup |
-|----------|----------|-------|
-| **OpenAI** | Production quality, best results | `export OPENAI_API_KEY=sk-...` |
-| **Ollama** | Local/private, no API costs | Install Ollama + model |
+OpenAI is the only wired-up provider today. Local/Ollama support is still being designed, so the CLI will ignore `COMMITGEN_PROVIDER=ollama` (or similar) until the provider package grows that implementation.
+
+| Provider | Status | Setup |
+|----------|--------|-------|
+| **OpenAI** | ✅ Supported | `export OPENAI_API_KEY=sk-...` then choose a model with `COMMITGEN_MODEL` |
+| **Local/Ollama** | 🔜 Planned | Not implemented yet (follow project updates) |
 
 ### OpenAI Setup
 
@@ -152,11 +179,9 @@ git commit -m "feat: add user auth and↩ # <-- AI suggestion appears
 2. Set environment variable: `export OPENAI_API_KEY=sk-your-key`
 3. Optional: Choose model: `export COMMITGEN_MODEL=gpt-4o-mini`
 
-### Ollama Setup
+### Local/Ollama (Roadmap)
 
-1. Install [Ollama](https://ollama.ai)
-2. Pull a model: `ollama pull llama3.2:3b`
-3. Configure: `export COMMITGEN_PROVIDER=ollama COMMITGEN_MODEL=llama3.2:3b`
+Ollama/local-hosted models are high on the roadmap, but the provider code does not talk to Ollama yet. Track the repo releases for updates if you need on-device inference.
 
 ## Troubleshooting
 
@@ -195,17 +220,22 @@ commitgen doctor                        # System diagnostics
 
 1. **Analyze Changes**: Reads git staged changes and file modifications
 2. **Generate Context**: Creates intelligent prompts from code diffs
-3. **AI Processing**: Sends context to AI provider (OpenAI/Ollama)
+3. **AI Processing**: Sends context to the OpenAI provider
 4. **Smart Caching**: Caches results for identical changes
 5. **Integration**: Provides suggestions via git hooks or shell integration
 
 ## Documentation
 
 - **[Setup Guide](docs/SETUP.md)** - Complete installation and configuration
-- **[Technical Reference](docs/TECHNICAL.md)** - Architecture and development
-- **[Contributing Guide](docs/CONTRIBUTING.md)** - Development guidelines
-- **[Changelog](docs/CHANGELOG.md)** - Release history
 - **[AI Commit Workflow](DOCS/AI_COMMIT_WORKFLOW.md)** - zsh `aicommit` function + sample git hook
+
+Technical, contributing, and changelog docs are on the roadmap—follow the repo releases if you need those references.
+
+## Helper Scripts
+
+- `scripts/test-ai.sh` — sanity-checks the OpenAI flow using the same env vars as the app (`OPENAI_API_KEY`, `COMMITGEN_MODEL`, etc.).
+- `scripts/export-conventions.sh` — placeholder for a future conventions exporter (currently a no-op script).
+- `scripts/setup-company-conventions.sh` — placeholder for company-specific conventions bootstrap (currently a no-op script).
 
 ## Contributing
 
@@ -214,7 +244,7 @@ commitgen doctor                        # System diagnostics
 3. Make changes with tests
 4. Submit a pull request
 
-See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for detailed guidelines.
+Detailed contribution guidelines are on the roadmap—feel free to open a PR or issue if you need additional context.
 
 ## Uninstall
 
